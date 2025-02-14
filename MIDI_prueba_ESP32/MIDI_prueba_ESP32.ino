@@ -1,21 +1,44 @@
+/***************************************************
+ * Envío de mensajes MIDI en ESP32
+ * 
+ * Enciende y apaga distintas notas repetidamente
+ * 
+ * 
+ ***************************************************/
+
 #include <MIDI.h>
-MIDI_CREATE_DEFAULT_INSTANCE();
+
+// Define qué puerto serie usarás para MIDI.
+// En muchas placas ESP32, Serial2 corresponde a GPIO17 (TX2) y GPIO16 (RX2).
+#define MIDI_SERIAL Serial2
+
+// Crea la instancia MIDI sobre el puerto serie elegido
+MIDI_CREATE_INSTANCE(HardwareSerial, MIDI_SERIAL, MIDI);
 
 void setup() {
-  Serial.begin(115200);           // Inicializa el Serial a 115200 baudios
-  delay(1000);                    // Espera un poco para dar tiempo a que arranque el puerto serie
+  // Inicia el puerto serie para MIDI a la velocidad estándar (31.250 baudios).
+  MIDI_SERIAL.begin(31250);
 
-  // En la ESP32, 'while (!Serial)' no es necesario (y a veces no funciona igual que en Teensy),
-  // por lo que lo omitimos.
-  
-  Serial.println("Starting code on ESP32...");
+  // Inicia la librería MIDI en todos los canales (MIDI_CHANNEL_OMNI).
+  MIDI.begin(MIDI_CHANNEL_OMNI);
 
-  // Si quieres usar la librería MIDI para enviar datos por Serial (no por USB), puedes iniciar así:
-  // MIDI.begin(MIDI_CHANNEL_OMNI);
-  // Pero ten en cuenta que esto enviará datos por los pines Serial, no por USB.
+  // Serial normal (USB) para depuración (opcional)
+  Serial.begin(115200);
+  Serial.println("Iniciando ESP32 con MIDI por Serial2...");
 }
 
 void loop() {
-  Serial.println("Looping on ESP32...");
-  delay(1000);  // Espera 1 segundo antes de volver a imprimir
+  int note = 60;       // Nota MIDI 60 = C4 (Do central)
+  int velocity = 100;  // Velocidad (0-127)
+
+  // Envía Note On en el canal 1
+  MIDI.sendNoteOn(note, velocity, 1);
+  Serial.println("Note On (C4)");
+  delay(500);
+
+  // Envía Note Off en el canal 1
+  MIDI.sendNoteOff(note, 0, 1);
+  Serial.println("Note Off (C4)");
+  delay(500);
 }
+
