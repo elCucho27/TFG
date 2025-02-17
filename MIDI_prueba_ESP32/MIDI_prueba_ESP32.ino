@@ -1,11 +1,3 @@
-/***************************************************
- * Envío de mensajes MIDI en ESP32
- * 
- * Enciende y apaga distintas notas repetidamente
- * 
- * 
- ***************************************************/
-
 #include <MIDI.h>
 
 // Define qué puerto serie usarás para MIDI.
@@ -17,7 +9,7 @@ MIDI_CREATE_INSTANCE(HardwareSerial, MIDI_SERIAL, MIDI);
 
 void setup() {
   // Inicia el puerto serie para MIDI a la velocidad estándar (31.250 baudios).
-  MIDI_SERIAL.begin(31250);
+  MIDI_SERIAL.begin(115200);
 
   // Inicia la librería MIDI en todos los canales (MIDI_CHANNEL_OMNI).
   MIDI.begin(MIDI_CHANNEL_OMNI);
@@ -28,17 +20,41 @@ void setup() {
 }
 
 void loop() {
-  int note = 60;       // Nota MIDI 60 = C4 (Do central)
-  int velocity = 100;  // Velocidad (0-127)
+  // Definir las notas de "Para Elisa" (simplificadas)
+  int notes[] = { 
+    64,  63,  64,  63,  64,  59,  62,  60,  57,  // E5, D#5, E5, D#5, E5, B4, D5, C5, A4
+    64,  63,  64,  63,  64,  59,  62,  60,  57,  // E5, D#5, E5, D#5, E5, B4, D5, C5, A4
+    64,  63,  64,  63,  64,  59,  62,  60,  57,  // E5, D#5, E5, D#5, E5, B4, D5, C5, A4
+    64,  63,  64,  63,  64,  59,  62,  60,  57   // E5, D#5, E5, D#5, E5, B4, D5, C5, A4
+  };
 
-  // Envía Note On en el canal 1
-  MIDI.sendNoteOn(note, velocity, 1);
-  Serial.println("Note On (C4)");
-  delay(500);
+  // Definir la duración de las notas en milisegundos (500 ms por nota)
+  int noteDuration = 500;
 
-  // Envía Note Off en el canal 1
-  MIDI.sendNoteOff(note, 0, 1);
-  Serial.println("Note Off (C4)");
-  delay(500);
+  // Reproducir las notas de "Para Elisa"
+  for (int i = 0; i < 36; i++) {
+    int note = notes[i];
+    int velocity = 100;  // Velocidad (0-127)
+
+    // Enviar Note On en el canal 1
+    MIDI.sendNoteOn(note, velocity, 1);
+    Serial.write(144);
+    Serial.write(note);
+    Serial.write(velocity);
+    Serial.print("Note On: ");
+    Serial.println(note);
+    delay(noteDuration);
+
+    // Enviar Note Off en el canal 1
+    MIDI.sendNoteOff(note, 0, 1);
+    Serial.write(144);
+    Serial.write(note);
+    Serial.write(0);
+    Serial.print("Note Off: ");
+    Serial.println(note);
+    delay(noteDuration);
+  }
+
+  // Repetir el ciclo una vez terminado
+  delay(1000);  // Pausa antes de repetir
 }
-
