@@ -1,0 +1,29 @@
+			HARDWARE
+
+
+Lo que tengo:
+		· x2 ESP32-WROOM32 ----> no recomendable como esclavo i2c(esta preparado para ser maestro), quizas poca velocidad para directo, baja resolucion DAC, menos buses I2c
+		· Arduino NANO V3 ----> no creo que me sirva como esclavo para i2c, no tiene pines suficientes para los 6 sensores
+
+		
+		· x4 Rotary encoders + switch
+		· LCD 1602A (paralelo) ----> disponible un módulo adaptador i2c(1€)
+		· Pulsadores (sw)
+		· Potenciometros (1K-500K)
+		· LEDs varios
+		· 
+
+
+Material que se puede reciclar:
+		·Conectores DIN5
+		·Faders lineales
+		·Rotary encoders
+
+
+Hardware necesario/seleccionado:
+		· Teensy 4.1 (30-50€) --->velocidad suficiente para directo, mas buses i2c, soporta Ethernet(con adaptador (5€))
+		· x3 Resistores FSR 500mm(20-25€) ---> se pueden hacer caseros
+		· x3 Soft pot membrane resistor 500mm (27€+envio USA)
+		· Seeduino Xiao (5-10€) ---> esclavo I2c para módulo sensor
+
+		·Pitch/Mod Wheel ---> pueden ser necesarias, de momento no las encuentro.
