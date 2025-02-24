@@ -14,9 +14,9 @@ Lo que tengo:
 		· 
 
 
-Material que se puede reciclar:
+Material que se puede reciclar(controladora Tascam):
 		·Conectores DIN5
-		·Faders lineales
+		·Faders lineales 10KB
 		·Rotary encoders
 
 
@@ -27,3 +27,5 @@ Hardware necesario/seleccionado:
 		· Seeduino Xiao (5-10€) ---> esclavo I2c para módulo sensor
 
 		·Pitch/Mod Wheel ---> pueden ser necesarias, de momento no las encuentro.
+
+Presupuesto total aprox.:----------> 250€
