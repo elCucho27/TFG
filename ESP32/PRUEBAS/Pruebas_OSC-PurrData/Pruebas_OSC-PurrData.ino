@@ -4,29 +4,57 @@
 
 const char* ssid = "TP-Link_3506";
 const char* password = "30517493";
-const char* host = "192.168.1.48"; // Reemplaza con la IP de tu PC
+const char* host = "192.168.1.48"; // IP de tu PC
 const int port = 8000; // Puerto en el que Purr Data está escuchando
 
 WiFiUDP Udp;
 
-// Definir los pines a los que están conectados los potenciómetros
 const int potPinPitch = 33;
 const int potPinVolume = 32;
 const int potPinModulation = 34;
+const int buttonPin = 26;  // Pin del pulsador
+
+bool buttonState = false;
+bool lastButtonState = false;
+unsigned long lastDebounceTime = 0;
+const unsigned long debounceDelay = 50;  // Tiempo de debounce en milisegundos
+
+int lastPitch = -1;
+float lastVolume = 0.001;
+int lastModulation = -1;
+
+float filteredPitch = 0;  // Almacena el valor filtrado
+const float alpha = 0.1;  // Factor de suavizado (ajústalo entre 0.05 y 0.2)
 
 void setup() {
   Serial.begin(115200);
   WiFi.begin(ssid, password);
+
+  Serial.println("Conectando a Wi-Fi...\n");
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
-    Serial.println("Conectando a Wi-Fi...");
+    Serial.print(".");
   }
-  Serial.println("Conectado a Wi-Fi");
-  
-  // Configurar los pines de los potenciómetros como entradas
+  Serial.println("\nConectado a Wi-Fi\n");
+
   pinMode(potPinPitch, INPUT);
   pinMode(potPinVolume, INPUT);
   pinMode(potPinModulation, INPUT);
+  pinMode(buttonPin, INPUT_PULLUP); // Activar resistencia interna
+}
+
+void sendOSCMessage(const char* address, float value) {
+  OSCMessage msg(address);
+  msg.add(value);
+  Udp.beginPacket(host, port);
+  msg.send(Udp);
+  Udp.endPacket();
+  msg.empty();
+
+  Serial.print("Enviando OSC: ");
+  Serial.print(address);
+  Serial.print(" -> ");
+  Serial.println(value);
 }
 
 void loop() {
@@ -34,41 +62,52 @@ void loop() {
   int volumeValue = analogRead(potPinVolume);
   int modulationValue = analogRead(potPinModulation);
 
-  // Mapear los valores leídos al rango de 0 a 127
-  int pitch = map(pitchValue, 0, 4095, 0, 127);
-  int volume = map(volumeValue, 0, 4095, 0, 127);
-  int modulation = map(modulationValue, 0, 4095, 0, 127);
+  // Aplicar filtro exponencial
+  filteredPitch = (filteredPitch * (1 - alpha)) + (pitchValue * alpha);
+  
+  int pitch = map(filteredPitch, 0, 4095, 220, 880);
+  float volume = map(volumeValue, 0, 4095, 0, 1000);
+  int modulation = map(modulationValue, 0, 4095, 0, 27);
 
-  // Imprimir los valores en el Monitor Serie para depuración
-  Serial.print("Pitch: ");
-  Serial.print(pitch);
-  Serial.print("\tVolume: ");
-  Serial.print(volume);
-  Serial.print("\tModulation: ");
-  Serial.println(modulation);
+  // Solo enviar mensajes si hay cambios
+  if (pitch != lastPitch) {
+    sendOSCMessage("/LAVANA/pitch", pitch);
+    lastPitch = pitch;
+  }
 
-  // Enviar los valores mediante OSC
-  OSCMessage msgPitch("/pitch");
-  msgPitch.add(pitch);
-  Udp.beginPacket(host, port);
-  msgPitch.send(Udp);
-  Udp.endPacket();
-  msgPitch.empty();
+  if (volume != lastVolume) {
 
-  OSCMessage msgVolume("/volume");
-  msgVolume.add(volume);
-  Udp.beginPacket(host, port);
-  msgVolume.send(Udp);
-  Udp.endPacket();
-  msgVolume.empty();
+    sendOSCMessage("/LAVANA/volume", volume/1000);
+    lastVolume = volume;
+  }
 
-  OSCMessage msgModulation("/modulation");
-  msgModulation.add(modulation);
-  Udp.beginPacket(host, port);
-  msgModulation.send(Udp);
-  Udp.endPacket();
-  msgModulation.empty();
+  if (modulation != lastModulation) {
+    sendOSCMessage("/LAVANA/modulation", modulation);
+    lastModulation = modulation;
+  }
 
-  delay(100); // Esperar 100 ms antes de la siguiente lectura
+  // Lectura del botón con debounce
+  bool reading = digitalRead(buttonPin) == LOW;  // Invertido por PULLUP
+
+  if (reading != lastButtonState) {
+    lastDebounceTime = millis();  // Reiniciar el temporizador de debounce
+  }
+
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    if (reading != buttonState) {
+      buttonState = reading;
+
+      if (buttonState) {
+        Serial.println("BOTÓN PRESIONADO -> Enviando Note ON");
+        sendOSCMessage("/LAVANA/noteON", 1);
+      } else {
+        Serial.println("BOTÓN LIBERADO -> Enviando Note OFF");
+        sendOSCMessage("/LAVANA/noteOFF", 1);
+      }
+    }
+  }
+
+  lastButtonState = reading;
+
+  delay(30);
 }
-
