@@ -1,7 +1,10 @@
 #include "OSCReceiver.h"   // Incluye su propio header
 
 // Constructor: inicializa el puerto local a 7000 y sin callback
-OSCReceiver::OSCReceiver() : localPort(7000), messageCallback(NULL) {
+OSCReceiver::OSCReceiver() 
+: localPort(7000),
+  messageCallback(NULL)
+{
   // Constructor vacío: no se requiere más inicialización aquí
 }
 

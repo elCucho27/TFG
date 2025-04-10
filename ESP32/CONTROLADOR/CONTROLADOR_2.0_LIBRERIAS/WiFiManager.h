@@ -1,19 +1,19 @@
-#ifndef WIFI_MANAGER_LAVANA_H   // Protección contra inclusiones múltiples
-#define WIFI_MANAGER_LAVANA_H
+#ifndef WIFI_MANAGER   // Protección contra inclusiones múltiples
+#define WIFI_MANAGER
 
 #include <WiFi.h>              // Incluye la biblioteca WiFi para ESP32
 
 // Enumeración para definir el modo de conexión
-enum class WiFiModeLAVANA {
+enum class WiFiMode {
   CLIENT,         // Modo Cliente: se conecta a una red WiFi existente
   ACCESS_POINT    // Modo AP: actúa como punto de acceso
 };
 
-// La clase WiFiManager_LAVANA gestiona la conexión WiFi en modos de cliente o AP.
-class WiFiManager_LAVANA {
+// La clase WiFiManager gestiona la conexión WiFi en modos de cliente o AP.
+class WiFiManager {
   public:
     // Constructor: no requiere parámetros, se configura con los métodos siguientes.
-    WiFiManager_LAVANA();
+    WiFiManager();
 
     // Conecta al ESP32 a una red WiFi existente como cliente.
     // Recibe el SSID y la contraseña.
@@ -26,4 +26,4 @@ class WiFiManager_LAVANA {
     bool isConnected();
 };
 
-#endif  // WIFI_MANAGER_LAVANA_H
+#endif  // WIFI_MANAGER

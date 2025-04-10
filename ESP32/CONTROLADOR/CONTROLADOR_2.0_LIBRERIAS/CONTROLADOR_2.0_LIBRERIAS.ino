@@ -1,4 +1,4 @@
-#include "WiFiManager_LAVANA.h"   // Gestión de la conexión WiFi (cliente o AP)
+#include "WiFiManager.h"   // Gestión de la conexión WiFi (cliente o AP)
 #include "OSCReceiver.h"          // Módulo receptor OSC
 
 // =====================
@@ -18,7 +18,7 @@
 // =====================
 
 // Objeto para gestionar la conexión WiFi.
-WiFiManager_LAVANA wifiManager;
+WiFiManager wifiManager;
 // Objeto para recibir mensajes OSC.
 OSCReceiver oscReceiver;
 
