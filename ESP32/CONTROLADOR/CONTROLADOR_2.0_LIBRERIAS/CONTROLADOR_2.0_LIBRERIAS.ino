@@ -10,8 +10,8 @@
 
 // Configuración para ambos modos: si se usa modo cliente, estos serán los datos de la red a la que conectar.
 // En modo AP, estos serán el nombre y contraseña del punto de acceso que creará el ESP32.
-#define WIFI_SSID "TP-Link_3506"        
-#define WIFI_PASS "30517493"
+#define WIFI_SSID "ESP32_S3_AP"        
+#define WIFI_PASS "LAVANA"
 
 // =====================
 // DECLARACIÓN DE OBJETOS GLOBALES
