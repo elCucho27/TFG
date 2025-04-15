@@ -14,9 +14,9 @@
 #define FSR3_PIN      35
 
 // Dot FSR
-#define DOT1_PIN      34
-#define DOT2_PIN      39
-#define DOT3_PIN      36
+#define DOT1_PIN      16
+#define DOT2_PIN      17
+#define DOT3_PIN      5
 
 // SoftPot Membrane
 #define SFT1_PIN      25
@@ -46,6 +46,8 @@ void setup() {
   sensorManager.addSensor(SFT1_PIN, "/LAVANA/sft1", 0, 4095, 0.1);
   sensorManager.addSensor(SFT2_PIN, "/LAVANA/sft2", 0, 4095, 0.1);
   sensorManager.addSensor(SFT3_PIN, "/LAVANA/sft3", 0, 4095, 0.1);
+
+  
 }
 
 void loop() {

@@ -1,0 +1,35 @@
+#N canvas 1528 20 1534 778 10;
+#X obj 431 242 udpreceive;
+#X obj 431 282 unpackOSC;
+#X msg 341 182 port 7000;
+#X msg 431 182 port 8000;
+#X msg 521 182 port 0;
+#X obj 541 312 print OSC;
+#X text 571 142 OSC receiver;
+#X obj 431 332 routeOSC /LAVANA/fsr1 /LAVANA/fsr2 /LAVANA/fsr3 /LAVANA/dot1
+/LAVANA/dot2 /LAVANA/dot3 /LAVANA/sft1 /LAVANA/sft2 /LAVANA/sft3,
+f 126;
+#X obj 314 559 print fsr1;
+#X obj 400 560 print fsr2;
+#X obj 490 560 print fsr3;
+#X obj 580 560 print dot1;
+#X obj 670 560 print dot2;
+#X obj 760 560 print dot3;
+#X obj 870 560 print sft1;
+#X obj 990 560 print sft2;
+#X obj 1090 560 print sft3;
+#X connect 0 0 1 0;
+#X connect 1 0 5 0;
+#X connect 1 0 7 0;
+#X connect 2 0 0 0;
+#X connect 3 0 0 0;
+#X connect 4 0 0 0;
+#X connect 7 0 8 0;
+#X connect 7 1 9 0;
+#X connect 7 2 10 0;
+#X connect 7 3 11 0;
+#X connect 7 4 12 0;
+#X connect 7 5 13 0;
+#X connect 7 6 14 0;
+#X connect 7 7 15 0;
+#X connect 7 8 16 0;
