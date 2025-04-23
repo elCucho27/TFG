@@ -1,0 +1,344 @@
+diff --git a/components/esp_driver_i2c/i2c_slave.c b/components/esp_driver_i2c/i2c_slave.c
+index 5fd9ae9738cd..acf715ecb026 100644
+--- a/components/esp_driver_i2c/i2c_slave.c
++++ b/components/esp_driver_i2c/i2c_slave.c
+@@ -212,6 +212,11 @@ esp_err_t i2c_new_slave_device(const i2c_slave_config_t *slave_config, i2c_slave
+         i2c_ll_enable_intr_mask(hal->dev, I2C_SLAVE_ADDR_UNMATCH_INT_ENA_M);
+     }
+ #endif
++#if SOC_I2C_SLAVE_CAN_GET_STRETCH_CAUSE
++    if (slave_config->flags.stretch_en) {
++        i2c_ll_enable_intr_mask(hal->dev, I2C_SLAVE_STRETCH_INT_ENA_M);
++    }
++#endif
+ 
+     ESP_GOTO_ON_ERROR(i2c_common_set_pins(i2c_slave->base), err, TAG, "i2c slave set pins failed");
+ 
+@@ -358,6 +363,58 @@ esp_err_t i2c_slave_receive(i2c_slave_dev_handle_t i2c_slave, uint8_t *data, siz
+     return ESP_OK;
+ }
+ 
++esp_err_t i2c_slave_write_one_shot(i2c_slave_dev_handle_t i2c_slave, const uint8_t *data, int size)
++{
++    ESP_RETURN_ON_FALSE_ISR(i2c_slave, ESP_ERR_INVALID_ARG, TAG, "i2c slave not initialized");
++    ESP_RETURN_ON_FALSE_ISR(data, ESP_ERR_INVALID_ARG, TAG, "invalid data buffer");
++    ESP_RETURN_ON_FALSE_ISR((i2c_slave->fifo_mode == I2C_SLAVE_FIFO), ESP_ERR_NOT_SUPPORTED, TAG, "non-fifo mode is not suppored in this API, please set access_ram_en to false");
++    i2c_hal_context_t *hal = &i2c_slave->base->hal;
++
++    portENTER_CRITICAL_SAFE(&i2c_slave->base->spinlock);
++    i2c_ll_write_txfifo(hal->dev, data, size);
++    portEXIT_CRITICAL_SAFE(&i2c_slave->base->spinlock);
++    return ESP_OK;
++}
++
++esp_err_t i2c_slave_get_tx_empty_size(i2c_slave_dev_handle_t i2c_slave, uint32_t *size)
++{
++    ESP_RETURN_ON_FALSE_ISR(i2c_slave, ESP_ERR_INVALID_ARG, TAG, "i2c slave not initialized");
++    ESP_RETURN_ON_FALSE_ISR(size, ESP_ERR_INVALID_ARG, TAG, "invalid size pointer");
++    ESP_RETURN_ON_FALSE_ISR((i2c_slave->fifo_mode == I2C_SLAVE_FIFO), ESP_ERR_NOT_SUPPORTED, TAG, "non-fifo mode is not suppored in this API, please set access_ram_en to false");
++    i2c_hal_context_t *hal = &i2c_slave->base->hal;
++
++    portENTER_CRITICAL_SAFE(&i2c_slave->base->spinlock);
++    i2c_ll_get_txfifo_len(hal->dev, size);
++    portEXIT_CRITICAL_SAFE(&i2c_slave->base->spinlock);
++    return ESP_OK;
++}
++
++esp_err_t i2c_slave_read_one_shot(i2c_slave_dev_handle_t i2c_slave, uint8_t *data, int size)
++{
++    ESP_RETURN_ON_FALSE_ISR(i2c_slave, ESP_ERR_INVALID_ARG, TAG, "i2c slave not initialized");
++    ESP_RETURN_ON_FALSE_ISR(data, ESP_ERR_INVALID_ARG, TAG, "invalid data pointer");
++    ESP_RETURN_ON_FALSE_ISR((i2c_slave->fifo_mode == I2C_SLAVE_FIFO), ESP_ERR_NOT_SUPPORTED, TAG, "non-fifo mode is not suppored in this API, please set access_ram_en to false");
++    i2c_hal_context_t *hal = &i2c_slave->base->hal;
++
++    portENTER_CRITICAL_SAFE(&i2c_slave->base->spinlock);
++    i2c_ll_read_rxfifo(hal->dev, data, size);
++    portEXIT_CRITICAL_SAFE(&i2c_slave->base->spinlock);
++    return ESP_OK;
++}
++
++esp_err_t i2c_slave_get_rx_full_size(i2c_slave_dev_handle_t i2c_slave, uint32_t *size)
++{
++    ESP_RETURN_ON_FALSE_ISR(i2c_slave, ESP_ERR_INVALID_ARG, TAG, "i2c slave not initialized");
++    ESP_RETURN_ON_FALSE_ISR(size, ESP_ERR_INVALID_ARG, TAG, "invalid size pointer");
++    ESP_RETURN_ON_FALSE_ISR((i2c_slave->fifo_mode == I2C_SLAVE_FIFO), ESP_ERR_NOT_SUPPORTED, TAG, "non-fifo mode is not suppored in this API, please set access_ram_en to false");
++    i2c_hal_context_t *hal = &i2c_slave->base->hal;
++
++    portENTER_CRITICAL_SAFE(&i2c_slave->base->spinlock);
++    i2c_ll_get_rxfifo_cnt(hal->dev, size);
++    portEXIT_CRITICAL_SAFE(&i2c_slave->base->spinlock);
++    return ESP_OK;
++}
++
+ #if SOC_I2C_SLAVE_SUPPORT_I2CRAM_ACCESS
+ 
+ esp_err_t i2c_slave_read_ram(i2c_slave_dev_handle_t i2c_slave, uint8_t ram_offset, uint8_t *data, size_t receive_size)
+diff --git a/components/esp_driver_i2c/include/driver/i2c_slave.h b/components/esp_driver_i2c/include/driver/i2c_slave.h
+index 897b9899ed03..7185769f3458 100644
+--- a/components/esp_driver_i2c/include/driver/i2c_slave.h
++++ b/components/esp_driver_i2c/include/driver/i2c_slave.h
+@@ -1,5 +1,5 @@
+ /*
+- * SPDX-FileCopyrightText: 2023 Espressif Systems (Shanghai) CO LTD
++ * SPDX-FileCopyrightText: 2023-2024 Espressif Systems (Shanghai) CO LTD
+  *
+  * SPDX-License-Identifier: Apache-2.0
+  */
+@@ -113,6 +113,70 @@ esp_err_t i2c_slave_receive(i2c_slave_dev_handle_t i2c_slave, uint8_t *data, siz
+  */
+ esp_err_t i2c_slave_transmit(i2c_slave_dev_handle_t i2c_slave, const uint8_t *data, int size, int xfer_timeout_ms);
+ 
++/**
++ * @brief Write data to an I2C slave device in a single transaction.
++ *
++ * This function writes the specified data to the I2C slave device in a single transaction.
++ *
++ * @param i2c_slave Handle to the I2C slave device.
++ * @param data Pointer to the buffer containing the data to be written.
++ * @param size Size of the data to be written, in bytes.
++ * @return
++ *     - ESP_OK: Success
++ *     - ESP_ERR_INVALID_ARG: Invalid arguments
++ *
++ * @note This function is a blocking call and may have a timeout if the operation takes too long.
++ */
++esp_err_t i2c_slave_write_one_shot(i2c_slave_dev_handle_t i2c_slave, const uint8_t *data, int size);
++
++/**
++ * @brief Get the remaining empty space in the transmit buffer of the I2C slave device.
++ *
++ * This function retrieves the size of the remaining empty space in the transmit buffer of the I2C slave device.
++ * It can be used to determine the amount of data that can be written to the transmit buffer without overflowing it.
++ *
++ * @param i2c_slave Handle to the I2C slave device.
++ * @param size Pointer to a variable where the empty space size will be stored.
++ * @return
++ *     - ESP_OK: Success
++ *     - ESP_ERR_INVALID_ARG: Invalid arguments
++ *
++ * @note The size returned in the 'size' parameter represents the number of bytes that can be written to the transmit buffer without overflowing.
++ */
++esp_err_t i2c_slave_get_tx_empty_size(i2c_slave_dev_handle_t i2c_slave, uint32_t *size);
++
++/**
++ * @brief Read data from an I2C slave device in a single transaction.
++ *
++ * This function reads data from the I2C slave device in a single transaction and stores it in the provided buffer.
++ *
++ * @param i2c_slave Handle to the I2C slave device.
++ * @param data Pointer to the buffer where the read data will be stored.
++ * @param size Number of bytes to read from the I2C slave device.
++ * @return
++ *     - ESP_OK: Success
++ *     - ESP_ERR_INVALID_ARG: Invalid arguments
++ *
++ * @note This function is a blocking call and may have a timeout if the operation takes too long.
++ */
++esp_err_t i2c_slave_read_one_shot(i2c_slave_dev_handle_t i2c_slave, uint8_t *data, int size);
++
++/**
++ * @brief Get the size of the received data in the I2C slave device's receive buffer.
++ *
++ * This function retrieves the size of the received data in the receive buffer of the I2C slave device.
++ * It can be used to determine the amount of data available for reading from the receive buffer.
++ *
++ * @param i2c_slave Handle to the I2C slave device.
++ * @param size Pointer to a variable where the size of received data will be stored.
++ * @return
++ *     - ESP_OK: Success
++ *     - ESP_ERR_INVALID_ARG: Invalid arguments
++ *
++ * @note The size returned in the 'size' parameter represents the number of bytes of received data currently available in the receive buffer.
++ */
++esp_err_t i2c_slave_get_rx_full_size(i2c_slave_dev_handle_t i2c_slave, uint32_t *size);
++
+ /**
+  * @brief Set I2C slave event callbacks for I2C slave channel.
+  *
+diff --git a/components/esp_driver_i2c/linker.lf b/components/esp_driver_i2c/linker.lf
+index 7a3bcd47e52f..0a0ca1ebba9e 100644
+--- a/components/esp_driver_i2c/linker.lf
++++ b/components/esp_driver_i2c/linker.lf
+@@ -6,6 +6,10 @@ entries:
+         i2c_master: s_i2c_write_command (noflash)
+         i2c_master: s_i2c_read_command (noflash)
+         i2c_master: s_i2c_start_end_command (noflash)
++        i2c_slave: i2c_slave_write_one_shot (noflash)
++        i2c_slave: i2c_slave_get_tx_empty_size (noflash)
++        i2c_slave: i2c_slave_read_one_shot (noflash)
++        i2c_slave: i2c_slave_get_rx_full_size (noflash)
+ 
+ [mapping:i2c_hal]
+ archive: libhal.a
+diff --git a/components/esp_driver_i2c/test_apps/i2c_test_apps/main/CMakeLists.txt b/components/esp_driver_i2c/test_apps/i2c_test_apps/main/CMakeLists.txt
+index c49b446df4fa..6b1c470dc33e 100644
+--- a/components/esp_driver_i2c/test_apps/i2c_test_apps/main/CMakeLists.txt
++++ b/components/esp_driver_i2c/test_apps/i2c_test_apps/main/CMakeLists.txt
+@@ -21,6 +21,10 @@ if(CONFIG_SOC_I2C_SUPPORT_10BIT_ADDR AND CONFIG_SOC_I2C_SUPPORT_SLAVE)
+     list(APPEND srcs "test_i2c_10bit.c")
+ endif()
+ 
++if(CONFIG_SOC_I2C_SLAVE_CAN_GET_STRETCH_CAUSE)
++    list(APPEND srcs "test_i2c_stretch.c")
++endif()
++
+ # Only build this file with `CONFIG_PM_POWER_DOWN_CPU_IN_LIGHT_SLEEP` and `CONFIG_IEEE802154_ENABLED` enabled
+ # Enable `CONFIG_IEEE802154_ENABLED` is for modem domain really power down.
+ # This reliable can be removed if the sleep retention got finished.
+diff --git a/components/esp_driver_i2c/test_apps/i2c_test_apps/main/test_i2c_stretch.c b/components/esp_driver_i2c/test_apps/i2c_test_apps/main/test_i2c_stretch.c
+new file mode 100644
+index 000000000000..5db8b14b5c22
+--- /dev/null
++++ b/components/esp_driver_i2c/test_apps/i2c_test_apps/main/test_i2c_stretch.c
+@@ -0,0 +1,114 @@
++/*
++ * SPDX-FileCopyrightText: 2023-2024 Espressif Systems (Shanghai) CO LTD
++ *
++ * SPDX-License-Identifier: Unlicense OR CC0-1.0
++ */
++
++#include <stdio.h>
++#include <string.h>
++#include "sdkconfig.h"
++#include "unity.h"
++#include "freertos/FreeRTOS.h"
++#include "freertos/task.h"
++#include "freertos/queue.h"
++#include "esp_err.h"
++#include "soc/gpio_periph.h"
++#include "soc/clk_tree_defs.h"
++#include "soc/soc_caps.h"
++#include "hal/gpio_hal.h"
++#include "esp_private/periph_ctrl.h"
++#include "driver/gpio.h"
++#include "driver/i2c_master.h"
++#include "driver/i2c_slave.h"
++#include "esp_rom_gpio.h"
++#include "esp_log.h"
++#include "test_utils.h"
++#include "test_board.h"
++
++#define LENGTH  (10)
++
++static IRAM_ATTR bool test_i2c_stretch_callback(i2c_slave_dev_handle_t channel, const i2c_slave_stretch_event_data_t *edata, void *user_data)
++{
++    uint8_t data_wr[LENGTH] = { 0 };
++    if (edata->stretch_cause == I2C_SLAVE_STRETCH_CAUSE_ADDRESS_MATCH) {
++        uint32_t fifo_size;
++        i2c_slave_get_tx_empty_size(channel, &fifo_size);
++        if (fifo_size == SOC_I2C_FIFO_LEN) {
++            i2c_slave_write_one_shot(channel, data_wr, LENGTH);
++        }
++    }
++    return true;
++}
++
++static void master_read_slave_test(void)
++{
++    uint8_t data_rd[LENGTH] = {0};
++    i2c_master_bus_config_t i2c_mst_config = {
++        .clk_source = I2C_CLK_SRC_DEFAULT,
++        .i2c_port = TEST_I2C_PORT,
++        .scl_io_num = I2C_MASTER_SCL_IO,
++        .sda_io_num = I2C_MASTER_SDA_IO,
++        .flags.enable_internal_pullup = true,
++    };
++    i2c_master_bus_handle_t bus_handle;
++    TEST_ESP_OK(i2c_new_master_bus(&i2c_mst_config, &bus_handle));
++
++    i2c_device_config_t dev_cfg = {
++        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
++        .device_address = 0x58,
++        .scl_speed_hz = 100000,
++    };
++
++    i2c_master_dev_handle_t dev_handle;
++    TEST_ESP_OK(i2c_master_bus_add_device(bus_handle, &dev_cfg, &dev_handle));
++
++    unity_wait_for_signal("i2c slave init finish");
++
++    printf("Slave please write data to buffer\n");
++
++    unity_send_signal("slave write");
++    unity_wait_for_signal("master read");
++
++    TEST_ESP_OK(i2c_master_receive(dev_handle, data_rd, LENGTH, -1));
++    vTaskDelay(100 / portTICK_PERIOD_MS);
++    for (int i = 0; i < LENGTH; i++) {
++        printf("%d\n", data_rd[i]);
++        TEST_ASSERT(data_rd[i] == 0);
++    }
++    unity_send_signal("ready to delete master read test");
++
++    TEST_ESP_OK(i2c_master_bus_rm_device(dev_handle));
++    TEST_ESP_OK(i2c_del_master_bus(bus_handle));
++}
++
++static void slave_write_buffer_test(void)
++{
++    i2c_slave_config_t i2c_slv_config = {
++        .addr_bit_len = I2C_ADDR_BIT_LEN_7,
++        .clk_source = I2C_CLK_SRC_DEFAULT,
++        .i2c_port = TEST_I2C_PORT,
++        .send_buf_depth = 256,
++        .scl_io_num = I2C_SLAVE_SCL_IO,
++        .sda_io_num = I2C_SLAVE_SDA_IO,
++        .slave_addr = 0x58,
++        .flags.stretch_en = 1,
++    };
++
++    i2c_slave_dev_handle_t slave_handle;
++    TEST_ESP_OK(i2c_new_slave_device(&i2c_slv_config, &slave_handle));
++
++    i2c_slave_event_callbacks_t cbs = {
++        .on_stretch_occur = test_i2c_stretch_callback,
++    };
++
++    i2c_slave_register_event_callbacks(slave_handle, &cbs, NULL);
++    unity_send_signal("i2c slave init finish");
++
++    unity_wait_for_signal("slave write");
++
++    unity_send_signal("master read");
++    unity_wait_for_signal("ready to delete master read test");
++    TEST_ESP_OK(i2c_del_slave_device(slave_handle));
++}
++
++TEST_CASE_MULTIPLE_DEVICES("I2C master read slave (but slave is empty cause stretch) test", "[i2c][test_env=generic_multi_device][timeout=150]", master_read_slave_test, slave_write_buffer_test);
+diff --git a/components/esp_driver_i2c/test_apps/i2c_test_apps/sdkconfig.ci.iram_safe b/components/esp_driver_i2c/test_apps/i2c_test_apps/sdkconfig.ci.iram_safe
+index 3d8248686352..64942ad40afc 100644
+--- a/components/esp_driver_i2c/test_apps/i2c_test_apps/sdkconfig.ci.iram_safe
++++ b/components/esp_driver_i2c/test_apps/i2c_test_apps/sdkconfig.ci.iram_safe
+@@ -3,4 +3,5 @@ CONFIG_COMPILER_DUMP_RTL_FILES=y
+ CONFIG_FREERTOS_USE_TICKLESS_IDLE=y
+ CONFIG_COMPILER_OPTIMIZATION_NONE=y
+ CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_SILENT=y
++CONFIG_COMPILER_OPTIMIZATION_CHECKS_SILENT=y
+ CONFIG_I2C_ISR_IRAM_SAFE=y
+diff --git a/components/soc/esp32s3/include/soc/Kconfig.soc_caps.in b/components/soc/esp32s3/include/soc/Kconfig.soc_caps.in
+index 7314e76574a0..8393e7c1a4d2 100644
+--- a/components/soc/esp32s3/include/soc/Kconfig.soc_caps.in
++++ b/components/soc/esp32s3/include/soc/Kconfig.soc_caps.in
+@@ -519,6 +519,10 @@ config SOC_I2C_SLAVE_SUPPORT_I2CRAM_ACCESS
+     bool
+     default y
+ 
++config SOC_I2C_SLAVE_CAN_GET_STRETCH_CAUSE
++    bool
++    default y
++
+ config SOC_I2S_NUM
+     int
+     default 2
+diff --git a/components/soc/esp32s3/include/soc/soc_caps.h b/components/soc/esp32s3/include/soc/soc_caps.h
+index 4d8eba522184..006dc797ce9f 100644
+--- a/components/soc/esp32s3/include/soc/soc_caps.h
++++ b/components/soc/esp32s3/include/soc/soc_caps.h
+@@ -209,6 +209,7 @@
+ #define SOC_I2C_SUPPORT_10BIT_ADDR  (1)
+ #define SOC_I2C_SLAVE_SUPPORT_BROADCAST    (1)
+ #define SOC_I2C_SLAVE_SUPPORT_I2CRAM_ACCESS   (1)
++#define SOC_I2C_SLAVE_CAN_GET_STRETCH_CAUSE (1)
+ 
+ /*-------------------------- I2S CAPS ----------------------------------------*/
+ #define SOC_I2S_NUM                 (2U)
