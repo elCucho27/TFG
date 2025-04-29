@@ -26,7 +26,7 @@ void loop() {
         Serial.print("Sensor 3: ");
         Serial.println(sensor3);
       } else {
-        Serial.println("Sin cambios significativos en las lecturas.");
+        //Serial.println("Sin cambios significativos en las lecturas.");
       }
     } else {
       Serial.println("Encabezado inválido recibido.");
@@ -34,5 +34,5 @@ void loop() {
   } else {
     Serial.println("Datos incompletos recibidos.");
   }
-  delay(500);  // Esperar antes de la siguiente solicitud
+  delay(30);  // Esperar antes de la siguiente solicitud
 }
