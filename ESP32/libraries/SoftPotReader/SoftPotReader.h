@@ -1,23 +1,29 @@
+// SoftPotReader.h
 #ifndef SOFTPOT_READER_H
 #define SOFTPOT_READER_H
 
 #include <Arduino.h>
-#include <Smoothed.h>
+#include <Smoothed.h>  // Librería para hacer promedio de lecturas
+#include "ISensor.h"   // Nuestra interfaz base
 
-class SoftPotReader {
-  public:
-    SoftPotReader(uint8_t pin);
-    void begin();
-    void update();
-    uint16_t getFilteredValue() const; 
-    uint16_t getRawValue() const;
+/**
+ *  Clase para leer sensores de tipo SoftPot.
+ */
+class SoftPotReader : public ISensor {
+public:
+    SoftPotReader(uint8_t pin);    // Constructor: recibe el pin analógico donde está el sensor.
 
-  private:
-    uint8_t _pin;           // Pin analógico donde está conectado el SoftPot
-    uint16_t _filteredVal;  // Valor filtrado (mínimo de 3 lecturas)
-    uint16_t _rawVal;       // Última lectura bruta
-    Smoothed<uint16_t> _smoothed;    //suavizado de lecturas ADC
-     
+    void begin() override;         // Inicializa el sensor.
+    void update() override;        // Lee y filtra una nueva lectura.
+    uint16_t getValue() const override; // Devuelve el valor filtrado.
+
+    uint16_t getRawValue() const;  // Devuelve la última lectura cruda (sin filtro).
+
+private:
+    uint8_t _pin;                  // Pin analógico conectado.
+    uint16_t _filteredVal;          // Valor filtrado.
+    uint16_t _rawVal;               // Valor bruto leído del ADC.
+    Smoothed<uint16_t> _smoothed;   // Instancia de filtro de promedio.
 };
 
-#endif
+#endif // SOFTPOT_READER_H

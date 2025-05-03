@@ -3,30 +3,27 @@
 
 #include <Arduino.h>
 #include <Smoothed.h>
+#include "ISensor.h"   // ¡Importante! Incluir ISensor para heredar de ella
 
-class FSRReader {
+/**
+ *  Clase para leer sensores de tipo FSR.
+ */
+class FSRReader : public ISensor {  // <--- Aquí está la corrección importante
 public:
-    enum FilterType {
-        AVERAGE,
-        EXPONENTIAL
-    };
+    FSRReader(uint8_t pin);
 
-    FSRReader(uint8_t pin, uint8_t windowSize = 5, FilterType filter = AVERAGE);
+    void begin() override;
+    void update() override;
+    uint16_t getValue() const override;
 
-    void begin();
-    void update();
+    uint16_t getRawValue() const;
 
-    uint16_t getRawValue() const;          // Valor de lectura directa
-    uint16_t getFilteredValue() const;     // Valor suavizado
-    float getNormalizedValue() const;      // Valor suavizado normalizado (0.0–1.0)
 
 private:
     uint8_t _pin;
-    uint8_t _windowSize;
-    FilterType _filterType;
-    Smoothed<uint16_t> _smoothed;
     uint16_t _filteredVal;
     uint16_t _rawVal;
+    Smoothed<uint16_t> _smoothed;
 };
 
 #endif // FSR_READER_H

@@ -1,32 +1,29 @@
 #ifndef I2C_HANDLER_H
 #define I2C_HANDLER_H
 
+#include <Arduino.h>
 #include <Wire.h>
 #include "SensorManager.h"
 
+// Tamaño máximo del buffer I2C
+#define I2C_BUFFER_SIZE 64
+
 class I2CHandler {
 public:
-    I2CHandler(SensorManager* manager);
-
-    // Ahora el begin() recibe la dirección y opcionalmente los pines SDA/SCL
-    void begin(uint8_t address, int sdaPin = -1, int sclPin = -1);
-    void update();  // Actualiza el buffer antes de que el master lo pida
-
-    // Estas funciones son llamadas por Wire
-    void onRequest();
-    void onReceive(int numBytes);
+    I2CHandler(uint8_t i2cAddress, SensorManager& sensorManager);
+    void begin();   // Inicializa la comunicación I2C como esclavo
+    void update();  // Actualiza internamente el buffer con los datos actuales
 
 private:
-    SensorManager* _sensorManager;
-    uint8_t _slaveAddress;
-    uint8_t _buffer[64];
+    static void onRequestService(); // Manejador de evento de petición de datos
+    static I2CHandler* instance;    // Instancia estática necesaria para el onRequest
 
-    void prepareBuffer();  // Rellena el buffer antes de enviarlo
+    uint8_t _address;               // Dirección I2C del esclavo
+    SensorManager& _sensorManager;  // Referencia al SensorManager
+    uint8_t _buffer[I2C_BUFFER_SIZE]; // Buffer de datos a enviar
+    size_t _dataLength;              // Tamaño actual de los datos en el buffer
 
+    void fillBuffer();              // Rellena el buffer con los datos actuales
 };
-
-// --- Funciones C "libres" para compatibilidad con Wire ---
-void onI2CRequest();
-void onI2CReceive(int numBytes);
 
 #endif // I2C_HANDLER_H

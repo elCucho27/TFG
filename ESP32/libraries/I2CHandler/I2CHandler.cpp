@@ -1,79 +1,39 @@
 #include "I2CHandler.h"
 
-// Variable global para acceder desde funciones externas
-static I2CHandler* _globalI2CHandler = nullptr;
+I2CHandler* I2CHandler::instance = nullptr;
 
-I2CHandler::I2CHandler(SensorManager* manager)
-    : _sensorManager(manager)
-{}
-
-void I2CHandler::begin(uint8_t address, int sdaPin, int sclPin) {
-    if (sdaPin >= 0 && sclPin >= 0) {
-        Wire.begin(sdaPin, sclPin, address);
-    } else {
-        Wire.begin(address);
-    }
-
-    _slaveAddress = address;
-    _globalI2CHandler = this;
-    Wire.onRequest(onI2CRequest);
-    Wire.onReceive(onI2CReceive);
+// Constructor
+I2CHandler::I2CHandler(uint8_t i2cAddress, SensorManager& sensorManager)
+: _address(i2cAddress), _sensorManager(sensorManager), _dataLength(0) {
+    instance = this; // Guardamos la instancia para uso dentro de onRequest
 }
 
+// Inicialización
+void I2CHandler::begin() {
+    Wire.begin(_address); // Configuramos la ESP32 como esclavo I2C
+    Wire.onRequest(onRequestService); // Asociamos el evento de solicitud
+}
+
+// Actualiza los datos disponibles para el maestro
 void I2CHandler::update() {
-    prepareBuffer();
+    fillBuffer(); // Volcamos las últimas lecturas en el buffer
 }
 
-void I2CHandler::prepareBuffer() {
-    // Cabecera
-    _buffer[0] = 0xAA;
-    _buffer[1] = 0x55;
+// Rellena el buffer I2C con datos actuales de los sensores
+void I2CHandler::fillBuffer() {
+    // Pedimos los datos empaquetados al SensorManager
+    uint8_t* sensorData = _sensorManager.getSensorData(&_dataLength);
 
-    uint8_t pos = 3;  // Dejar espacio para longitud
-
-    // Número de SoftPots
-    uint8_t numSoftPots = _sensorManager->getSoftPotCount();
-    _buffer[pos++] = numSoftPots;
-    for (uint8_t i = 0; i < numSoftPots; i++) {
-        uint16_t value = _sensorManager->getSoftPotFiltered(i);
-        _buffer[pos++] = (value >> 8) & 0xFF;
-        _buffer[pos++] = value & 0xFF;
+    if (sensorData != nullptr && _dataLength <= I2C_BUFFER_SIZE) {
+        memcpy(_buffer, sensorData, _dataLength);
+    } else {
+        _dataLength = 0; // Si hay error o excedemos tamaño, enviamos buffer vacío
     }
+}
 
-    // Número de FSRs
-    uint8_t numFSRs = _sensorManager->getFSRCount();
-    _buffer[pos++] = numFSRs;
-    for (uint8_t i = 0; i < numFSRs; i++) {
-        uint16_t value = _sensorManager->getFSRFiltered(i);
-        _buffer[pos++] = (value >> 8) & 0xFF;
-        _buffer[pos++] = value & 0xFF;
+// Manejador llamado automáticamente cuando el maestro hace un requestFrom()
+void I2CHandler::onRequestService() {
+    if (instance != nullptr) {
+        Wire.write(instance->_buffer, instance->_dataLength);
     }
-
-    // Longitud de payload
-    _buffer[2] = pos - 3;
-
-    // Checksum
-    uint8_t checksum = 0;
-    for (uint8_t i = 3; i < pos; i++) {
-        checksum += _buffer[i];
-    }
-    _buffer[pos++] = checksum;
-}
-
-void I2CHandler::onRequest() {
-    Wire.write(_buffer, sizeof(_buffer));
-}
-
-void I2CHandler::onReceive(int numBytes) {
-    // Actualmente no procesamos datos entrantes
-}
-
-// --- Implementaciones externas requeridas por Wire ---
-
-void onI2CRequest() {
-    if (_globalI2CHandler) _globalI2CHandler->onRequest();
-}
-
-void onI2CReceive(int numBytes) {
-    if (_globalI2CHandler) _globalI2CHandler->onReceive(numBytes);
 }

@@ -1,30 +1,30 @@
+// SoftPotReader.cpp
 #include "SoftPotReader.h"
 
-SoftPotReader::SoftPotReader(uint8_t pin) : _pin(pin), _filteredVal(0), _rawVal(0) {}
+SoftPotReader::SoftPotReader(uint8_t pin)
+: _pin(pin),
+  _filteredVal(0),
+  _rawVal(0) {
+    
+}
 
 void SoftPotReader::begin() {
-  pinMode(_pin, INPUT);
-  _smoothed.begin(SMOOTHED_AVERAGE, 3); // Usamos promedio de 3 lecturas
-  _filteredVal = analogRead(_pin);  // Primer valor inicial
+    pinMode(_pin, INPUT);                     // Configuramos el pin como entrada analógica.
+    _smoothed.begin(SMOOTHED_AVERAGE, 3);      // Inicializamos el filtro de promedio a 3 muestras.
+    _filteredVal = analogRead(_pin);           // Primera lectura inicial para arrancar.
 }
 
 void SoftPotReader::update() {
-  // Leer el valor actual del sensor
-  uint16_t reading = analogRead(_pin);
-  
-  // Añadir esta nueva lectura al buffer de suavizado
-  _smoothed.add(reading);
-
-  // Actualizar los atributos
-  _filteredVal = _smoothed.get();  // Valor suavizado
-  _rawVal = reading;               // Valor bruto actual
+    uint16_t reading = analogRead(_pin);       // Leer el valor analógico.
+    _smoothed.add(reading);                    // Añadir al filtro de promedio.
+    _filteredVal = _smoothed.get();             // Actualizar el valor filtrado.
+    _rawVal = reading;                         // Guardar el valor crudo también.
 }
 
-
-uint16_t SoftPotReader::getFilteredValue() const {
-  return _filteredVal;
+uint16_t SoftPotReader::getValue() const {
+    return _filteredVal;                      // Devuelve el valor ya filtrado.
 }
 
 uint16_t SoftPotReader::getRawValue() const {
-  return _rawVal;
+    return _rawVal;                           // Devuelve el último valor bruto leído (opcional).
 }

@@ -1,29 +1,26 @@
-#include "SensorManager.h"
-#include "I2CHandler.h"
+// SENSOR_2.3_SENSOR_I2C.ino
 
-// Pines I2C específicos
-#define SDA_SLAVE 8
-#define SCL_SLAVE 9
+#include <Wire.h>
+#include <SensorManager.h>
+#include <I2CHandler.h>
 
-// Crear objetos globales
+#define I2C_ADDRESS 0x08 // Dirección I2C del esclavo
+
 SensorManager sensorManager;
-I2CHandler i2cHandler(&sensorManager); // Le pasamos el SensorManager
+I2CHandler i2cHandler(I2C_ADDRESS, sensorManager);
 
 void setup() {
-    Serial.begin(115200);
-    Serial.println("Iniciando SensorManager e I2CHandler...");
+  Serial.begin(115200);
+  Serial.println("Inicializando módulo SENSOR...");
 
-    sensorManager.addSoftPot(32);
-    sensorManager.addSoftPot(35);
-    sensorManager.addSoftPot(34);
+  sensorManager.begin();
+  i2cHandler.begin();
 
-    sensorManager.begin();
-    i2cHandler.begin(0x08, SDA_SLAVE, SCL_SLAVE); // dirección + pines
+  Serial.println("Inicialización completa.");
 }
 
 void loop() {
-    // Solo actualizamos las lecturas de sensores
-    sensorManager.update();
-
-    delay(50);  // Nada más aquí
+  sensorManager.update();  // Actualizar todas las lecturas
+  i2cHandler.update();     // Preparar los datos para enviar
+  delay(10);               // Pequeño delay para estabilidad
 }
