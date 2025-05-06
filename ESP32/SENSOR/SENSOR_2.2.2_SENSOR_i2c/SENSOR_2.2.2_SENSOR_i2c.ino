@@ -1,30 +1,42 @@
 #include <Wire.h>
 #include "SensorManager.h"
 
+// Dirección I²C de este esclavo
 #define SLAVE_ADDR 0x08
 
-SensorManager sensors;  // Crea una instancia del manager
+// Instancia global del gestor de sensores
+SensorManager sensors;
 
+// Esta función se llama automáticamente cuando el maestro pide datos (Wire.requestFrom)
 void onI2CRequest() {
-    auto packet = sensors.packetize();           // Pedimos los datos empaquetados
-    Wire.write(packet.data(), packet.size());    // Los enviamos al maestro
+    auto packet = sensors.packetize();           // Preparamos todos los valores de sensores en un array de bytes
+    Wire.write(packet.data(), packet.size());    // Enviamos ese array de bytes al maestro
 }
 
 void setup() {
     Serial.begin(115200);
     delay(100);
 
-    // 1) Registrar 3 sensores tipo SoftPot en sus pines respectivos
-    sensors.addSensor(SensorType::SoftPot, 34);
-    sensors.addSensor(SensorType::SoftPot, 35);
-    sensors.addSensor(SensorType::SoftPot, 32);
+    // 1) Registrar 3 sensores tipo SoftPot
+    sensors.addSensor(SensorType::SoftPot, 34);   // SoftPot 1 en pin 34
+    sensors.addSensor(SensorType::SoftPot, 35);   // SoftPot 2 en pin 35
+    sensors.addSensor(SensorType::SoftPot, 32);   // SoftPot 3 en pin 32
 
-    // 2) Inicializar todos los sensores registrados
+    // 2) Registrar 3 sensores tipo FSR
+    sensors.addSensor(SensorType::FSR, 33);       // FSR 1 en pin 33
+    sensors.addSensor(SensorType::FSR, 25);       // FSR 2 en pin 25
+    sensors.addSensor(SensorType::FSR, 26);       // FSR 3 en pin 26
+
+    // 3) Inicializar todos los sensores registrados
     sensors.begin();
 
-    // 3) Configurar el I2C como esclavo
+    Serial.println("[SLAVE] Sensores inicializados correctamente.");
+
+    // 4) Configurar el I2C como esclavo
     Wire.begin(SLAVE_ADDR);
     Wire.onRequest(onI2CRequest);
+
+    Serial.println("[SLAVE] I2C inicializado como esclavo en dirección 0x08.");
 }
 
 void loop() {
@@ -33,6 +45,17 @@ void loop() {
     uint32_t now = millis();
     if (now - last >= period) {
         last = now;
-        sensors.update();    // Actualizamos lecturas de todos los sensores
+        sensors.update();    // Actualizamos todas las lecturas de los sensores
+
+        // Opcional: imprimir lecturas para depuración
+        /*
+        auto values = sensors.getValues();
+        Serial.print("[SLAVE] Lecturas: ");
+        for (auto v : values) {
+            Serial.print(v);
+            Serial.print(" ");
+        }
+        Serial.println();
+        */
     }
 }
