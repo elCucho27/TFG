@@ -23,7 +23,7 @@ Adafruit_USBD_MIDI usb_midi;
 // Instancia de la librería MIDI usando Adafruit_USBD_MIDI como transporte
 MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MIDI);
 
-// === Estructura de cada pareja SoftPot + FSR ===
+// === Estructura de cada "cuerda" SoftPot + FSR ===
 struct SensorPair {
     uint8_t softpotIndex;
     uint8_t fsrIndex;
@@ -58,7 +58,7 @@ void setup() {
     unsigned long startTime = millis();
 
     while (!TinyUSBDevice.mounted()) {
-    if (millis() - startTime > 5000) { // Espera máxima de 5 segundos
+    if (millis() - startTime > 5000) { // Espera máxima 
         Serial.println("[ERROR] Dispositivo USB no montado.");
         break;
     }
