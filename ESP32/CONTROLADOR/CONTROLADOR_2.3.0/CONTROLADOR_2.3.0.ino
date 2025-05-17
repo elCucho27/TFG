@@ -1,3 +1,4 @@
+
 #include <Wire.h>
 #include <Adafruit_TinyUSB.h>
 #include <MIDI.h>
@@ -19,9 +20,9 @@ struct SensorPair {
 };
 
 SensorPair sensorPairs[NUM_PAIRS] = {
-    {0, 3, 40, 64, false, 0, 0},
+    {0, 5, 40, 64, false, 0, 0},
     {1, 4, 45, 69, false, 0, 0},
-    {2, 5, 38, 62, false, 0, 0}
+    {2, 3, 38, 62, false, 0, 0}
 };
 
 uint16_t sensorValues[NUM_SENSORS] = {0};

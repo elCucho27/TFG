@@ -33,7 +33,11 @@ void setupSoftware() {
     sensors.addSensor(SensorType::FSR, 33);
     sensors.addSensor(SensorType::FSR, 25);
     sensors.addSensor(SensorType::FSR, 26);
-
+/*
+    sensors.addSensor(SensorType::DotFSR, 5);
+    sensors.addSensor(SensorType::DotFSR, 17);
+    sensors.addSensor(SensorType::DotFSR, 16);
+*/
     sensors.begin();
     Serial.println("[SLAVE] Sensores inicializados.");
 }
