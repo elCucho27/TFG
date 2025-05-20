@@ -1,27 +1,29 @@
-#include "SensorManager.h"      // Incluye la cabecera de la propia clase
+#include "SensorManager.h"     
 #include "SoftPotReader.h"      // Implementación de sensores SoftPot
-#include "FSRReader.h"          // Implementación de sensores FSR y DotFSR
-
+#include "FSRReader.h"          // Implementación de sensores FSR
+#include "DotFSRReader.h"       // Implementación de sensores DotFSR
 // Constructor vacío
 SensorManager::SensorManager() {}
 
-// Destructor: libera memoria dinámica de sensores
+// ====================================== Destructor
 SensorManager::~SensorManager() {
     for (auto s : _sensors) delete s;  // Elimina cada sensor creado con `new`
 }
 
-// Agrega un nuevo sensor a la lista según su tipo
+// ====================================== Agrega un nuevo sensor a la lista según su tipo
 void SensorManager::addSensor(SensorType type, uint8_t pin) {
     ISensor* sensor = nullptr;
 
     switch (type) {
         case SensorType::SoftPot:
-            sensor = new SoftPotReader(pin);  // Crea sensor SoftPot
+            sensor = new SoftPotReader(pin);  
             break;
         case SensorType::FSR:
-        case SensorType::DotFSR:
-            sensor = new FSRReader(pin);      // FSR y DotFSR usan la misma clase
+            sensor = new FSRReader(pin);     
             break;
+	case SensorType::DotFSR:
+	    sensor = new DotFSRReader(pin);  
+    	    break;
         default:
             return;  // Si el tipo no es válido, no se hace nada
     }
@@ -29,7 +31,7 @@ void SensorManager::addSensor(SensorType type, uint8_t pin) {
     _sensors.push_back(sensor);  // Añade el sensor creado a la lista
 }
 
-// Inicializa todos los sensores registrados
+// ================================================ Inicializa todos los sensores registrados
 void SensorManager::begin() {
     for (auto s : _sensors) s->begin();             // Llama al `begin()` de cada sensor
     _values.resize(_sensors.size());                // Reserva espacio para guardar lecturas
@@ -44,12 +46,12 @@ void SensorManager::update() {
     }
 }
 
-// Devuelve los valores actuales (referencia constante)
+// ================================================ Devuelve los valores actuales (referencia constante)
 const std::vector<uint16_t>& SensorManager::getValues() const {
     return _values;
 }
 
-// Convierte cada valor uint16_t en dos bytes (formato MSB primero)
+// ================================================ Convierte cada valor uint16_t en dos bytes (formato MSB primero)
 std::vector<uint8_t> SensorManager::packetize() const {
 
     std::vector<uint8_t> buf;
@@ -64,7 +66,7 @@ std::vector<uint8_t> SensorManager::packetize() const {
     return buf;
 }
 
-// Devuelve true si al menos un valor ha cambiado más que el umbral
+// ================================================ Devuelve true si al menos un valor ha cambiado más que el umbral
 bool SensorManager::hasSignificantChange(uint16_t threshold) {
     for (size_t i = 0; i < _values.size(); ++i) {
         if (abs((int)_values[i] - (int)_lastSentValues[i]) > threshold)
@@ -73,7 +75,7 @@ bool SensorManager::hasSignificantChange(uint16_t threshold) {
     return false; // Ningún cambio importante
 }
 
-// Copia los valores actuales como nueva "referencia" para la siguiente comparación
+// ================================================ Copia los valores actuales como nueva "referencia" para la siguiente comparación
 void SensorManager::markValuesAsSent() {
     for (size_t i = 0; i < _values.size(); ++i)
         _lastSentValues[i] = _values[i];

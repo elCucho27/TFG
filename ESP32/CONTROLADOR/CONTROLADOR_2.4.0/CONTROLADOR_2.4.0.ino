@@ -91,7 +91,7 @@ void loop() {
           sensorValues[i] = (buffer[index] << 8) | buffer[index + 1];
         }
 
-        // === Paso 3: Procesar por cuerda ===
+      // === Paso 3: Procesar por cuerda ===
         for (int i = 0; i < NUM_STRINGS; ++i) {
           uint16_t softpot = sensorValues[i];
           uint16_t fsr     = sensorValues[i + 3];
@@ -102,14 +102,23 @@ void loop() {
           uint8_t ch = i + 1;
 
           // === MIDI: envío de eventos ===
-          if (strings[i].hasNoteOnEvent()) {
+         if (strings[i].hasNoteOnEvent()) {
             MIDI.sendNoteOn(strings[i].getNote(), strings[i].getVelocity(), ch);
-            MIDI.sendPitchBend(strings[i].getPitchBend(), ch);
+            MIDI.sendPitchBend(strings[i].getPitchBend() - 8192, ch);  // Ajuste: convierte 0–16383 a -8192–+8191
           }
 
           if (strings[i].hasNoteOffEvent()) {
             MIDI.sendNoteOff(strings[i].getNote(), 0, ch);
-            MIDI.sendPitchBend(8192, ch); // Centrar pitch bend
+            MIDI.sendPitchBend(0, ch);  // Centro de pitch bend en formato -8192–+8191
+          }
+
+          // Envio continuo de pitch bend si la nota sigue activa
+          if (!strings[i].hasNoteOffEvent() && !strings[i].hasNoteOnEvent()) {
+            int16_t bend = strings[i].getPitchBend();
+            if (bend != 8192) {
+              bend -= 8192;  // Convertimos a rango firmado
+              MIDI.sendPitchBend(bend, ch);
+            }
           }
 
           if (strings[i].hasModulationEvent()) {
