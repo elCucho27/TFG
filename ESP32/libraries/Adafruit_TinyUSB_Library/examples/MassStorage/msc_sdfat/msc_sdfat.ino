@@ -14,7 +14,7 @@
  */
 
 #include "SPI.h"
-#include "SdFat.h"
+#include "SdFat_Adafruit_Fork.h"
 #include "Adafruit_TinyUSB.h"
 
 const int chipSelect = 10;
@@ -32,9 +32,12 @@ Adafruit_USBD_MSC usb_msc;
 bool fs_changed;
 
 // the setup function runs once when you press reset or power the board
-void setup()
-{
+void setup() {
+  Serial.begin(115200);
+
+#ifdef LED_BUILTIN
   pinMode(LED_BUILTIN, OUTPUT);
+#endif
 
   // Set disk vendor id, product id and revision with string up to 8, 16, 4 characters respectively
   usb_msc.setID("Adafruit", "SD Card", "1.0");
@@ -47,16 +50,19 @@ void setup()
   usb_msc.setUnitReady(false);
   usb_msc.begin();
 
-  Serial.begin(115200);
+  // If already enumerated, additional class driverr begin() e.g msc, hid, midi won't take effect until re-enumeration
+  if (TinyUSBDevice.mounted()) {
+    TinyUSBDevice.detach();
+    delay(10);
+    TinyUSBDevice.attach();
+  }
+
   //while ( !Serial ) delay(10);   // wait for native usb
-
   Serial.println("Adafruit TinyUSB Mass Storage SD Card example");
-
   Serial.print("\nInitializing SD card ... ");
   Serial.print("CS = "); Serial.println(chipSelect);
 
-  if ( !sd.begin(chipSelect, SD_SCK_MHZ(50)) )
-  {
+  if ( !sd.begin(chipSelect, SD_SCK_MHZ(50)) ) {
     Serial.println("initialization failed. Things to check:");
     Serial.println("* is a card inserted?");
     Serial.println("* is your wiring correct?");
@@ -83,23 +89,19 @@ void setup()
   fs_changed = true; // to print contents initially
 }
 
-void loop()
-{
-  if ( fs_changed )
-  {
+void loop() {
+  if ( fs_changed ) {
     root.open("/");
     Serial.println("SD contents:");
 
     // Open next file in root.
     // Warning, openNext starts at the current directory position
     // so a rewind of the directory may be required.
-    while ( file.openNext(&root, O_RDONLY) )
-    {
+    while ( file.openNext(&root, O_RDONLY) ) {
       file.printFileSize(&Serial);
       Serial.write(' ');
       file.printName(&Serial);
-      if ( file.isDir() )
-      {
+      if ( file.isDir() ) {
         // Indicate a directory.
         Serial.write('/');
       }
@@ -119,8 +121,7 @@ void loop()
 // Callback invoked when received READ10 command.
 // Copy disk's data to buffer (up to bufsize) and
 // return number of copied bytes (must be multiple of block size)
-int32_t msc_read_cb (uint32_t lba, void* buffer, uint32_t bufsize)
-{
+int32_t msc_read_cb (uint32_t lba, void* buffer, uint32_t bufsize) {
   bool rc;
 
 #if SD_FAT_VERSION >= 20000
@@ -135,11 +136,12 @@ int32_t msc_read_cb (uint32_t lba, void* buffer, uint32_t bufsize)
 // Callback invoked when received WRITE10 command.
 // Process data in buffer to disk's storage and 
 // return number of written bytes (must be multiple of block size)
-int32_t msc_write_cb (uint32_t lba, uint8_t* buffer, uint32_t bufsize)
-{
+int32_t msc_write_cb (uint32_t lba, uint8_t* buffer, uint32_t bufsize) {
   bool rc;
 
+#ifdef LED_BUILTIN
   digitalWrite(LED_BUILTIN, HIGH);
+#endif
 
 #if SD_FAT_VERSION >= 20000
   rc = sd.card()->writeSectors(lba, buffer, bufsize/512);
@@ -152,8 +154,7 @@ int32_t msc_write_cb (uint32_t lba, uint8_t* buffer, uint32_t bufsize)
 
 // Callback invoked when WRITE10 command is completed (status received and accepted by host).
 // used to flush any pending cache.
-void msc_flush_cb (void)
-{
+void msc_flush_cb (void) {
 #if SD_FAT_VERSION >= 20000
   sd.card()->syncDevice();
 #else
@@ -165,5 +166,7 @@ void msc_flush_cb (void)
 
   fs_changed = true;
 
+#ifdef LED_BUILTIN
   digitalWrite(LED_BUILTIN, LOW);
+#endif
 }

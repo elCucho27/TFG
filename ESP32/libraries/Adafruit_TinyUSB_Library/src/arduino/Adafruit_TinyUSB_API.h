@@ -30,7 +30,25 @@
 
 // API Version, need to be updated when there is changes for
 // TinyUSB_API, USBD_CDC, USBD_Device, USBD_Interface,
-#define TINYUSB_API_VERSION 20400
+#define TINYUSB_API_VERSION 30000
+
+#if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_NRF52_ADAFRUIT) ||           \
+    defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_CH32) ||               \
+    (defined(ARDUINO_ARCH_RP2040) && !defined(ARDUINO_ARCH_MBED))
+#define TINYUSB_HAS_BUITLTIN_CORE_SUPPORT
+#endif
+
+// Core that has built-in support: Adafruit SAMD, Adafruit nRF, rp2040, esp32
+#if !defined(TINYUSB_HAS_BUITLTIN_CORE_SUPPORT)
+#define TINYUSB_NEED_POLLING_TASK
+#endif
+
+// Error message for Core that must select TinyUSB via menu (built-in except
+// esp32)
+#if !defined(USE_TINYUSB) && (defined(TINYUSB_HAS_BUITLTIN_CORE_SUPPORT) &&    \
+                              !defined(ARDUINO_ARCH_ESP32))
+#error TinyUSB is not selected, please select it in "Tools->Menu->USB Stack"
+#endif
 
 //--------------------------------------------------------------------+
 // Core API

@@ -25,11 +25,9 @@
 
 #include <Adafruit_TinyUSB.h>
 
-#define LED LED_BUILTIN
-
 // Create 2nd instance of CDC Ports.
 #ifdef ARDUINO_ARCH_ESP32
-  #error "Currnetly multiple CDCs on ESP32-Sx is not yet supported. An PR to update core/esp32/USBCDC and/or pre-built libusb are needed."
+  #error "Currently multiple CDCs on ESP32 is not yet supported"
   // for ESP32, we need to specify instance number when declaring object
   Adafruit_USBD_CDC USBSer1(1);
 #else
@@ -37,13 +35,17 @@
 #endif
 
 void setup() {
-  pinMode(LED, OUTPUT);
+#ifdef LED_BUILTIN
+  pinMode(LED_BUILTIN, OUTPUT);
+#endif
 
   Serial.begin(115200);
 
   // check to see if multiple CDCs are enabled
   if ( CFG_TUD_CDC < 2 ) {
-    digitalWrite(LED, HIGH); // LED on for error indicator
+    #ifdef LED_BUILTIN
+    digitalWrite(LED_BUILTIN, HIGH); // LED on for error indicator
+    #endif
 
     while(1) {
       Serial.printf("CFG_TUD_CDC must be at least 2, current value is %u\n", CFG_TUD_CDC);
@@ -55,6 +57,13 @@ void setup() {
 
   // initialize 2nd CDC interface
   USBSer1.begin(115200);
+
+  // If already enumerated, additional class driverr begin() e.g msc, hid, midi won't take effect until re-enumeration
+  if (TinyUSBDevice.mounted()) {
+    TinyUSBDevice.detach();
+    delay(10);
+    TinyUSBDevice.attach();
+  }
 
   while (!Serial || !USBSer1) {
     if (Serial) {
@@ -89,7 +98,9 @@ void loop() {
 
   if (delay_without_delaying(500)) {
     LEDstate = !LEDstate;
-    digitalWrite(LED, LEDstate);
+    #ifdef LED_BUILTIN
+    digitalWrite(LED_BUILTIN, LEDstate);
+    #endif
   }
 }
 

@@ -10,20 +10,100 @@
 *********************************************************************/
 
 #include "Adafruit_TinyUSB.h"
-#include "usb_descriptors.h"
 
 //--------------------------------------------------------------------+
-//
+// Video descriptors
 //--------------------------------------------------------------------+
+
+/* Time stamp base clock. It is a deprecated parameter. */
 #define FRAME_WIDTH   128
 #define FRAME_HEIGHT  96
 #define FRAME_RATE    30
 
-uint8_t const desc_video[] = {
-  TUD_VIDEO_CAPTURE_DESCRIPTOR_UNCOMPR_BULK(0, 0x80, FRAME_WIDTH, FRAME_HEIGHT, FRAME_RATE, 64)
+/* video capture path
+ *
+ * | Camera Terminal (0x01) | ----> | Output Terminal (0x02 Streaming) |
+ * */
+#define TERMID_CAMERA 0x01
+#define TERMID_OUTPUT 0x02
+
+tusb_desc_video_control_camera_terminal_t const desc_camera_terminal = {
+    .bLength = sizeof(tusb_desc_video_control_camera_terminal_t),
+    .bDescriptorType = TUSB_DESC_CS_INTERFACE,
+    .bDescriptorSubType = VIDEO_CS_ITF_VC_INPUT_TERMINAL,
+
+    .bTerminalID = TERMID_CAMERA,
+    .wTerminalType = VIDEO_ITT_CAMERA,
+    .bAssocTerminal = 0,
+    .iTerminal = 0,
+    .wObjectiveFocalLengthMin = 0,
+    .wObjectiveFocalLengthMax = 0,
+    .wOcularFocalLength = 0,
+    .bControlSize = 3,
+    .bmControls = { 0, 0, 0 }
 };
 
-Adafruit_USBD_Video usb_video(desc_video, sizeof(desc_video));
+tusb_desc_video_control_output_terminal_t const desc_output_terminal = {
+    .bLength = sizeof(tusb_desc_video_control_output_terminal_t),
+    .bDescriptorType = TUSB_DESC_CS_INTERFACE,
+    .bDescriptorSubType = VIDEO_CS_ITF_VC_OUTPUT_TERMINAL,
+
+    .bTerminalID = TERMID_OUTPUT,
+    .wTerminalType = VIDEO_TT_STREAMING,
+    .bAssocTerminal = 0,
+    .bSourceID = TERMID_CAMERA,
+    .iTerminal = 0
+};
+
+tusb_desc_video_format_uncompressed_t const desc_format = {
+    .bLength = sizeof(tusb_desc_video_format_uncompressed_t),
+    .bDescriptorType = TUSB_DESC_CS_INTERFACE,
+    .bDescriptorSubType = VIDEO_CS_ITF_VS_FORMAT_UNCOMPRESSED,
+    .bFormatIndex = 1, // 1-based index
+    .bNumFrameDescriptors = 1,
+    .guidFormat = { TUD_VIDEO_GUID_YUY2 },
+    .bBitsPerPixel = 16,
+    .bDefaultFrameIndex = 1,
+    .bAspectRatioX = 0,
+    .bAspectRatioY = 0,
+    .bmInterlaceFlags = 0,
+    .bCopyProtect = 0
+};
+
+tusb_desc_video_frame_uncompressed_continuous_t desc_frame = {
+    .bLength = sizeof(tusb_desc_video_frame_uncompressed_continuous_t),
+    .bDescriptorType = TUSB_DESC_CS_INTERFACE,
+    .bDescriptorSubType = VIDEO_CS_ITF_VS_FRAME_UNCOMPRESSED,
+    .bFrameIndex = 1, // 1-based index
+    .bmCapabilities = 0,
+    .wWidth = FRAME_WIDTH,
+    .wHeight = FRAME_HEIGHT,
+    .dwMinBitRate = FRAME_WIDTH * FRAME_HEIGHT * 16 * 1,
+    .dwMaxBitRate = FRAME_WIDTH * FRAME_HEIGHT * 16 * FRAME_RATE,
+    .dwMaxVideoFrameBufferSize = FRAME_WIDTH * FRAME_HEIGHT * 16 / 8,
+    .dwDefaultFrameInterval = 10000000 / FRAME_RATE,
+    .bFrameIntervalType = 0, // continuous
+    .dwFrameInterval = {
+        10000000 / FRAME_RATE, // min
+        10000000, // max
+        10000000 / FRAME_RATE // step
+    }
+};
+
+tusb_desc_video_streaming_color_matching_t desc_color = {
+    .bLength = sizeof(tusb_desc_video_streaming_color_matching_t),
+    .bDescriptorType = TUSB_DESC_CS_INTERFACE,
+    .bDescriptorSubType = VIDEO_CS_ITF_VS_COLORFORMAT,
+
+    .bColorPrimaries = VIDEO_COLOR_PRIMARIES_BT709,
+    .bTransferCharacteristics = VIDEO_COLOR_XFER_CH_BT709,
+    .bMatrixCoefficients = VIDEO_COLOR_COEF_SMPTE170M
+};
+
+//--------------------------------------------------------------------+
+// Video and frame buffer
+//--------------------------------------------------------------------+
+Adafruit_USBD_Video usb_video;
 
 // YUY2 frame buffer
 static uint8_t frame_buffer[FRAME_WIDTH * FRAME_HEIGHT * 16 / 8];
@@ -40,11 +120,35 @@ static unsigned already_sent = 0;
 static void fill_color_bar(uint8_t* buffer, unsigned start_position);
 
 void setup() {
+  // Manual begin() is required on core without built-in support e.g. mbed rp2040
+  if (!TinyUSBDevice.isInitialized()) {
+    TinyUSBDevice.begin(0);
+  }
+
   Serial.begin(115200);
+
+  usb_video.addTerminal(&desc_camera_terminal);
+  usb_video.addTerminal(&desc_output_terminal);
+  usb_video.addFormat(&desc_format);
+  usb_video.addFrame(&desc_frame);
+  usb_video.addColorMatching(&desc_color);
+
   usb_video.begin();
+
+  // If already enumerated, additional class driverr begin() e.g msc, hid, midi won't take effect until re-enumeration
+  if (TinyUSBDevice.mounted()) {
+    TinyUSBDevice.detach();
+    delay(10);
+    TinyUSBDevice.attach();
+  }
 }
 
 void loop() {
+  #ifdef TINYUSB_NEED_POLLING_TASK
+  // Manual call tud_task since it isn't called by Core's background
+  TinyUSBDevice.task();
+  #endif
+
   if (!tud_video_n_streaming(0, 0)) {
     already_sent = 0;
     frame_num = 0;
@@ -53,6 +157,7 @@ void loop() {
 
   if (!already_sent) {
     already_sent = 1;
+    tx_busy = 1;
     start_ms = millis();
     fill_color_bar(frame_buffer, frame_num);
     tud_video_n_frame_xfer(0, 0, (void*) frame_buffer, FRAME_WIDTH * FRAME_HEIGHT * 16 / 8);
@@ -62,10 +167,16 @@ void loop() {
   if (cur - start_ms < interval_ms) return; // not enough time
   if (tx_busy) return;
   start_ms += interval_ms;
+  tx_busy = 1;
 
   fill_color_bar(frame_buffer, frame_num);
   tud_video_n_frame_xfer(0, 0, (void*) frame_buffer, FRAME_WIDTH * FRAME_HEIGHT * 16 / 8);
 }
+
+//--------------------------------------------------------------------+
+// TinyUSB Video Callbacks
+//--------------------------------------------------------------------+
+extern "C" {
 
 void tud_video_frame_xfer_complete_cb(uint_fast8_t ctl_idx, uint_fast8_t stm_idx) {
   (void) ctl_idx;
@@ -83,6 +194,8 @@ int tud_video_commit_cb(uint_fast8_t ctl_idx, uint_fast8_t stm_idx,
   interval_ms = parameters->dwFrameInterval / 10000;
   return VIDEO_ERROR_NONE;
 }
+
+} // extern C
 
 //------------- Helper -------------//
 static void fill_color_bar(uint8_t* buffer, unsigned start_position) {

@@ -49,22 +49,22 @@
 
 // RX FIFO size
 #ifndef CFG_TUH_CDC_RX_BUFSIZE
-#define CFG_TUH_CDC_RX_BUFSIZE USBH_EPSIZE_BULK_MAX
+#define CFG_TUH_CDC_RX_BUFSIZE TUH_EPSIZE_BULK_MPS
 #endif
 
 // RX Endpoint size
 #ifndef CFG_TUH_CDC_RX_EPSIZE
-#define CFG_TUH_CDC_RX_EPSIZE  USBH_EPSIZE_BULK_MAX
+#define CFG_TUH_CDC_RX_EPSIZE  TUH_EPSIZE_BULK_MPS
 #endif
 
 // TX FIFO size
 #ifndef CFG_TUH_CDC_TX_BUFSIZE
-#define CFG_TUH_CDC_TX_BUFSIZE USBH_EPSIZE_BULK_MAX
+#define CFG_TUH_CDC_TX_BUFSIZE TUH_EPSIZE_BULK_MPS
 #endif
 
 // TX Endpoint size
 #ifndef CFG_TUH_CDC_TX_EPSIZE
-#define CFG_TUH_CDC_TX_EPSIZE  USBH_EPSIZE_BULK_MAX
+#define CFG_TUH_CDC_TX_EPSIZE  TUH_EPSIZE_BULK_MPS
 #endif
 
 //--------------------------------------------------------------------+
@@ -89,8 +89,7 @@ bool tuh_cdc_get_dtr(uint8_t idx);
 bool tuh_cdc_get_rts(uint8_t idx);
 
 // Check if interface is connected (DTR active)
-TU_ATTR_ALWAYS_INLINE static inline bool tuh_cdc_connected(uint8_t idx)
-{
+TU_ATTR_ALWAYS_INLINE static inline bool tuh_cdc_connected(uint8_t idx) {
   return tuh_cdc_get_dtr(idx);
 }
 
@@ -192,7 +191,8 @@ TU_ATTR_WEAK extern void tuh_cdc_tx_complete_cb(uint8_t idx);
 //--------------------------------------------------------------------+
 // Internal Class Driver API
 //--------------------------------------------------------------------+
-void cdch_init       (void);
+bool cdch_init       (void);
+bool cdch_deinit     (void);
 bool cdch_open       (uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const *itf_desc, uint16_t max_len);
 bool cdch_set_config (uint8_t dev_addr, uint8_t itf_num);
 bool cdch_xfer_cb    (uint8_t dev_addr, uint8_t ep_addr, xfer_result_t event, uint32_t xferred_bytes);

@@ -65,6 +65,10 @@
 #endif
 #endif
 
+#if defined(ARDUINO_ARCH_MBED)
+#include "mbed.h"  // Needed for DigitalOut and PinName
+#endif
+
 /*!
   @brief   NeoPixel constructor when length, pin and pixel type are known
            at compile-time.
@@ -1148,7 +1152,7 @@ void Adafruit_NeoPixel::show(void) {
     next = lo;
     bit = 8;
 
-    asm volatile("head20:"
+    asm volatile("head20%=:"
                  "\n\t" // Clk  Pseudocode    (T =  0)
                  "st   %a[port], %[hi]"
                  "\n\t" // 2    PORT = hi     (T =  2)
@@ -1162,7 +1166,7 @@ void Adafruit_NeoPixel::show(void) {
                  "\n\t" // 1    next = lo     (T =  7)
                  "dec  %[bit]"
                  "\n\t" // 1    bit--         (T =  8)
-                 "breq nextbyte20"
+                 "breq nextbyte20%="
                  "\n\t" // 1-2  if(bit == 0)
                  "rol  %[byte]"
                  "\n\t" // 1    b <<= 1       (T = 10)
@@ -1174,9 +1178,9 @@ void Adafruit_NeoPixel::show(void) {
                  "\n\t" // 2    nop nop       (T = 16)
                  "rjmp .+0"
                  "\n\t" // 2    nop nop       (T = 18)
-                 "rjmp head20"
+                 "rjmp head20%="
                  "\n\t" // 2    -> head20 (next bit out)
-                 "nextbyte20:"
+                 "nextbyte20%=:"
                  "\n\t" //                    (T = 10)
                  "st   %a[port], %[lo]"
                  "\n\t" // 2    PORT = lo     (T = 12)
@@ -1188,7 +1192,7 @@ void Adafruit_NeoPixel::show(void) {
                  "\n\t" // 2    b = *ptr++    (T = 16)
                  "sbiw %[count], 1"
                  "\n\t" // 2    i--           (T = 18)
-                 "brne head20"
+                 "brne head20%="
                  "\n" // 2    if(i != 0) -> (next byte)
                  : [port] "+e"(port), [byte] "+r"(b), [bit] "+r"(bit),
                    [next] "+r"(next), [count] "+w"(i)
@@ -1697,7 +1701,7 @@ void Adafruit_NeoPixel::show(void) {
     next = lo;
     bit = 8;
 
-    asm volatile("head20:"
+    asm volatile("head20%=:"
                  "\n\t" // Clk  Pseudocode    (T =  0)
                  "st   %a[port],  %[hi]"
                  "\n\t" // 2    PORT = hi     (T =  2)
@@ -1711,7 +1715,7 @@ void Adafruit_NeoPixel::show(void) {
                  "\n\t" // 2    PORT = next   (T =  7)
                  "mov  %[next] ,  %[lo]"
                  "\n\t" // 1    next = lo     (T =  8)
-                 "breq nextbyte20"
+                 "breq nextbyte20%="
                  "\n\t" // 1-2  if(bit == 0) (from dec above)
                  "rol  %[byte]"
                  "\n\t" // 1    b <<= 1       (T = 10)
@@ -1725,9 +1729,9 @@ void Adafruit_NeoPixel::show(void) {
                  "\n\t" // 1    nop           (T = 16)
                  "rjmp .+0"
                  "\n\t" // 2    nop nop       (T = 18)
-                 "rjmp head20"
+                 "rjmp head20%="
                  "\n\t" // 2    -> head20 (next bit out)
-                 "nextbyte20:"
+                 "nextbyte20%=:"
                  "\n\t" //                    (T = 10)
                  "ldi  %[bit]  ,  8"
                  "\n\t" // 1    bit = 8       (T = 11)
@@ -1739,7 +1743,7 @@ void Adafruit_NeoPixel::show(void) {
                  "\n\t" // 1    nop           (T = 16)
                  "sbiw %[count], 1"
                  "\n\t" // 2    i--           (T = 18)
-                 "brne head20"
+                 "brne head20%="
                  "\n" // 2    if(i != 0) -> (next byte)
                  : [port] "+e"(port), [byte] "+r"(b), [bit] "+r"(bit),
                    [next] "+r"(next), [count] "+w"(i)
@@ -1760,7 +1764,7 @@ void Adafruit_NeoPixel::show(void) {
     next = lo;
     bit = 8;
 
-    asm volatile("head40:"
+    asm volatile("head40%=:"
                  "\n\t" // Clk  Pseudocode    (T =  0)
                  "st   %a[port], %[hi]"
                  "\n\t" // 2    PORT = hi     (T =  2)
@@ -1792,7 +1796,7 @@ void Adafruit_NeoPixel::show(void) {
                  "\n\t" // 1    next = lo     (T = 24)
                  "dec  %[bit]"
                  "\n\t" // 1    bit--         (T = 25)
-                 "breq nextbyte40"
+                 "breq nextbyte40%="
                  "\n\t" // 1-2  if(bit == 0)
                  "rol  %[byte]"
                  "\n\t" // 1    b <<= 1       (T = 27)
@@ -1808,9 +1812,9 @@ void Adafruit_NeoPixel::show(void) {
                  "\n\t" // 2    nop nop       (T = 36)
                  "rjmp .+0"
                  "\n\t" // 2    nop nop       (T = 38)
-                 "rjmp head40"
+                 "rjmp head40%="
                  "\n\t" // 2    -> head40 (next bit out)
-                 "nextbyte40:"
+                 "nextbyte40%=:"
                  "\n\t" //                    (T = 27)
                  "ldi  %[bit]  , 8"
                  "\n\t" // 1    bit = 8       (T = 28)
@@ -1824,7 +1828,7 @@ void Adafruit_NeoPixel::show(void) {
                  "\n\t" // 2    nop nop       (T = 36)
                  "sbiw %[count], 1"
                  "\n\t" // 2    i--           (T = 38)
-                 "brne head40"
+                 "brne head40%="
                  "\n" // 1-2  if(i != 0) -> (next byte)
                  : [port] "+e"(port), [byte] "+r"(b), [bit] "+r"(bit),
                    [next] "+r"(next), [count] "+w"(i)
@@ -1840,9 +1844,69 @@ void Adafruit_NeoPixel::show(void) {
 
 #elif defined(__arm__)
 
+#if defined(TARGET_GIGA) || defined(TARGET_M4)
+  // Arduino GIGA -----------------------------------------------------------
+  uint8_t *p = pixels, *end = p + numBytes, pix;
+  while (p < end)
+  {
+    pix = *p++;
+    for (int i = 7; i >= 0; i--)
+    {
+      // gpio_write(&gpio->gpio, 1);
+      gpio->write(1);
+
+      // duty cycle determines bit value
+      // if (pix & 0x80)
+      if (bitRead(pix, i) == 0)
+      {
+        // one
+        // wait_ns(400); -> 192 cycles
+#if defined(TARGET_GIGA)
+        for (int j = 0; j < 96; j++)
+#else
+        for (int j = 0; j < 48; j++)
+#endif
+          __NOP();
+
+        // gpio_write(&gpio->gpio, 0);
+        gpio->write(0);
+
+        // wait_ns(850) -> 408 cycles
+#if defined(TARGET_GIGA)
+        for (int j = 0; j < 204; j++)
+#else
+        for (int j = 0; j < 102; j++)
+#endif
+          __NOP();
+      }
+      else
+      {
+        // zero
+        // wait_ns(800) -> 384 cycles
+#if defined(TARGET_GIGA)
+        for (int j = 0; j < 192; j++)
+#else
+        for (int j = 0; j < 96; j++)
+#endif
+          __NOP();
+
+        gpio->write(0);
+        // gpio_write(&gpio->gpio, 0);
+        // wait_ns(450) -> 216 cycles
+#if defined(TARGET_GIGA)
+        for (int j = 0; j < 108; j++)
+#else
+        for (int j = 0; j < 54; j++)
+#endif
+          __NOP();
+      }
+
+      // pix = pix << 1; // shift to next bit
+    }
+  }
     // ARM MCUs -- Teensy 3.0, 3.1, LC, Arduino Due, RP2040 -------------------
 
-#if defined(ARDUINO_ARCH_RP2040)
+#elif defined(ARDUINO_ARCH_RP2040)
   // Use PIO
   rp2040Show(pin, pixels, numBytes, is800KHz);
 
@@ -2670,7 +2734,7 @@ if(is800KHz) {
 
 #elif defined(__SAMD51__) // M4
 
-  uint8_t *ptr, *end, p, bitMask, portNum, bit;
+  uint8_t *ptr, *end, p, bitMask, portNum;
   uint32_t pinMask;
 
   portNum = g_APinDescription[pin].ulPort;
@@ -2865,7 +2929,7 @@ if(is800KHz) {
     // ToDo!
   }
 #endif
-#elif defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ARDUINO_CORE_STM32)
+#elif defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ARDUINO_CORE_STM32) || defined(_PY32_DEF_)
   uint8_t *p = pixels, *end = p + numBytes, pix = *p++, mask = 0x80;
   uint32_t cyc;
   uint32_t saveLoad = SysTick->LOAD, saveVal = SysTick->VAL;
@@ -3083,8 +3147,8 @@ if(is800KHz) {
   TC_Stop(TC1, 0);
 
 
-// RENESAS including UNO R4
-#elif defined(ARDUINO_ARCH_RENESAS) || defined(ARDUINO_ARCH_RENESAS_UNO) || defined(ARDUINO_ARCH_RENESAS_PORTENTA)
+// RENESAS including Arduino UNO R4 + STM32H7 Arduino Portenta H7 (Dual Core M7+M4) / Arduino Giga R1
+#elif defined(ARDUINO_ARCH_RENESAS) || defined(ARDUINO_ARCH_RENESAS_UNO) || defined(ARDUINO_ARCH_RENESAS_PORTENTA) || defined(ARDUINO_ARCH_MBED_PORTENTA) || defined(ARDUINO_ARCH_MBED_GIGA)
 
 // Definition for a single channel clockless controller for RA4M1 (Cortex M4)
 // See clockless.h for detailed info on how the template parameters are used.
@@ -3094,7 +3158,13 @@ if(is800KHz) {
 #define ARM_DWT_CTRL_CYCCNTENA          (1 << 0)                // Enable cycle count
 #define ARM_DWT_CYCCNT          (*(volatile uint32_t *)0xE0001004) // Cycle count register
 
+#if defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_GIGA)
+#define F_CPU 480000000
+#elif defined(ARDUINO_PORTENTA_H7_M4)
+#define F_CPU 240000000
+#else
 #define F_CPU 48000000
+#endif
 #define CYCLES_800_T0H (F_CPU / 4000000)
 #define CYCLES_800_T1H (F_CPU / 1250000)
 #define CYCLES_800 (F_CPU / 800000)
@@ -3104,15 +3174,23 @@ if(is800KHz) {
 
   uint8_t *p = pixels, *end = p + numBytes, pix, mask;
 
+// --- Platform-specific Pin Setup ---
+#if defined(ARDUINO_ARCH_MBED_PORTENTA) || defined(ARDUINO_ARCH_MBED_GIGA)
+  // Convert the Arduino pin number to an mbed PinName.
+  mbed::DigitalOut dout(digitalPinToPinName(pin));
+#else
   bsp_io_port_pin_t io_pin = g_pin_cfg[pin].pin;
+  // Macro to calculate the port base address for the given pin
   #define PIN_IO_PORT_ADDR(pn)      (R_PORT0 + ((uint32_t) (R_PORT1 - R_PORT0) * ((pn) >> 8u)))
 
   volatile uint16_t *set = &(PIN_IO_PORT_ADDR(io_pin)->POSR);
   volatile uint16_t *clr = &(PIN_IO_PORT_ADDR(io_pin)->PORR);
   uint16_t msk = (1U << (io_pin & 0xFF));
+#endif
 
   uint32_t cyc;
 
+  // Enable the cycle counter: ARM registers for precise timing.
   ARM_DEMCR |= ARM_DEMCR_TRCENA;
   ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;
 
@@ -3123,10 +3201,17 @@ if(is800KHz) {
     while (p < end) {
       pix = *p++;
       for (mask = 0x80; mask; mask >>= 1) {
+        // Wait until the beginning of the next bit period.
         while (ARM_DWT_CYCCNT - cyc < CYCLES_800)
           ;
         cyc = ARM_DWT_CYCCNT;
+        // Set the pin high:
+#if defined(ARDUINO_ARCH_MBED_PORTENTA) || defined(ARDUINO_ARCH_MBED_GIGA)
+        dout = 1;
+#else
         *set = msk;
+#endif
+        // Keep the pin high for T1H or T0H depending on the data bit:
         if (pix & mask) {
           while (ARM_DWT_CYCCNT - cyc < CYCLES_800_T1H)
             ;
@@ -3134,9 +3219,15 @@ if(is800KHz) {
           while (ARM_DWT_CYCCNT - cyc < CYCLES_800_T0H)
             ;
         }
+        // Set the pin low:
+#if defined(ARDUINO_ARCH_MBED_PORTENTA) || defined(ARDUINO_ARCH_MBED_GIGA)
+        dout = 0;
+#else
         *clr = msk;
+#endif
       }
     }
+    // Ensure the final low state lasts the full period.
     while (ARM_DWT_CYCCNT - cyc < CYCLES_800)
       ;
 #if defined(NEO_KHZ400)
@@ -3148,7 +3239,12 @@ if(is800KHz) {
         while (ARM_DWT_CYCCNT - cyc < CYCLES_400)
           ;
         cyc = ARM_DWT_CYCCNT;
+        // Set the pin high:
+#if defined(ARDUINO_ARCH_MBED_PORTENTA) || defined(ARDUINO_ARCH_MBED_GIGA)
+        dout = 1;
+#else
         *set = msk;
+#endif
         if (pix & mask) {
           while (ARM_DWT_CYCCNT - cyc < CYCLES_400_T1H)
             ;
@@ -3156,9 +3252,15 @@ if(is800KHz) {
           while (ARM_DWT_CYCCNT - cyc < CYCLES_400_T0H)
             ;
         }
+        // Set the pin low:
+#if defined(ARDUINO_ARCH_MBED_PORTENTA) || defined(ARDUINO_ARCH_MBED_GIGA)
+        dout = 0;
+#else
         *clr = msk;
+#endif
       }
     }
+    // Ensure the final low state lasts the full period.
     while (ARM_DWT_CYCCNT - cyc < CYCLES_400)
       ;
   }
@@ -3278,6 +3380,9 @@ if(is800KHz) {
 
 #elif defined(ARDUINO_ARCH_CH32)
   ch32Show(gpioPort, gpioPin, pixels, numBytes, is800KHz);
+#elif defined(ARDUINO_ARCH_RP2040) && defined(__riscv)
+  // Use PIO
+  rp2040Show(pin, pixels, numBytes, is800KHz);
 #else
 #error Architecture not supported
 #endif
@@ -3311,6 +3416,9 @@ void Adafruit_NeoPixel::setPin(int16_t p) {
 #if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ARDUINO_CORE_STM32)
   gpioPort = digitalPinToPort(p);
   gpioPin = STM_LL_GPIO_PIN(digitalPinToPinName(p));
+#elif defined(_PY32_DEF_)
+  gpioPort = digitalPinToPort(p);
+  gpioPin = PY32_LL_GPIO_PIN(digitalPinToPinName(p));
 #elif defined(ARDUINO_ARCH_CH32)
   PinName const pin_name = digitalPinToPinName(pin);
   gpioPort = get_GPIO_Port(CH_PORT(pin_name));
@@ -3320,6 +3428,14 @@ void Adafruit_NeoPixel::setPin(int16_t p) {
     gpioPin = gpioPin >> 13;
   }
   #endif
+#endif
+#if defined(TARGET_GIGA) || defined(TARGET_M4)
+  gpio = digitalPinToGpio(pin);
+  if (gpio == NULL)
+  {
+      gpio = new mbed::DigitalInOut(digitalPinToPinName(pin), PIN_OUTPUT, PullNone, 0);
+      digitalPinToGpio(pin) = gpio;
+  }
 #endif
 }
 

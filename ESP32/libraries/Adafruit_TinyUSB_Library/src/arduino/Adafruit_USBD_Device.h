@@ -26,11 +26,14 @@
 #define ADAFRUIT_USBD_DEVICE_H_
 
 #include "Adafruit_USBD_Interface.h"
-#include "tusb.h"
+
+#include "../tusb.h" // use relative path to prevent ESP32 out-of-sync issue
 
 #ifdef ARDUINO_ARCH_ESP32
 #include "esp32-hal-tinyusb.h"
 #endif
+
+#if CFG_TUD_ENABLED
 
 class Adafruit_USBD_Device {
 private:
@@ -88,7 +91,18 @@ public:
   }
 
   uint8_t allocEndpoint(uint8_t in) {
-    return in ? (0x80 | _epin_count++) : _epout_count++;
+    uint8_t ret = in ? (0x80 | _epin_count++) : _epout_count++;
+#if defined(ARDUINO_ARCH_ESP32) && ARDUINO_USB_CDC_ON_BOOT && !ARDUINO_USB_MODE
+    // ESP32 reserves 0x03, 0x84, 0x85 for CDC Serial
+    if (ret == 0x03) {
+      ret = _epout_count++;
+    } else if (ret == 0x84 || ret == 0x85) {
+      // Note: ESP32 does not have this much of EP IN
+      _epin_count = 6;
+      ret = 0x86;
+    }
+#endif
+    return ret;
   }
 
   //------------- String descriptor -------------//
@@ -103,17 +117,19 @@ public:
   //------------- Control -------------//
 
   bool begin(uint8_t rhport = 0);
+  bool isInitialized(uint8_t rhport = 0);
   void task(void);
 
   // physical disable/enable pull-up
-  bool detach(void);
-  bool attach(void);
+  bool detach(void) { return tud_disconnect(); }
+  bool attach(void) { return tud_connect(); }
 
   //------------- status -------------//
-  bool mounted(void);
-  bool suspended(void);
-  bool ready(void);
-  bool remoteWakeup(void);
+  bool mounted(void) { return tud_mounted(); }
+  bool suspended(void) { return tud_suspended(); }
+  bool ready(void) { return tud_ready(); }
+  bool remoteWakeup(void) { return tud_remote_wakeup(); }
+  tusb_speed_t getSpeed(void) { return tud_speed_get(); }
 
 private:
   uint16_t const *descriptor_string_cb(uint8_t index, uint16_t langid);
@@ -132,4 +148,5 @@ extern Adafruit_USBD_Device TinyUSBDevice;
 #define USBDevice TinyUSBDevice
 #endif
 
+#endif /* CFG_TUD_ENABLED */
 #endif /* ADAFRUIT_USBD_DEVICE_H_ */
