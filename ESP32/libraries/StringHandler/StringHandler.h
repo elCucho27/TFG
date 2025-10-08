@@ -23,8 +23,12 @@ public:
     uint8_t getModulation() const;
     int16_t getPitchBend() const;
 
-    // NUEVO: acceso público para depuración
+    
     uint16_t getBendReference() const { return _bendReferencePos; }
+    uint16_t getRawPosition() const { return _lastSoftpotVal; }
+    uint16_t getRawModulation() const { return _lastFsrVal; }
+    uint16_t getRawVelocity() const { return _lastDotfsrVal; }
+
 
 private:
     uint8_t _midiChannel;
@@ -56,6 +60,7 @@ private:
     uint8_t mapSoftPotToNote(uint16_t value) const;
     int16_t computePitchBend(uint16_t value) const;
     uint8_t computeVelocity(uint16_t value, uint32_t timestamp) const;
+
 };
 
 #endif // STRING_HANDLER_H

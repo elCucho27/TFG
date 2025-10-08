@@ -6,7 +6,6 @@ FSRReader::FSRReader(uint8_t pin)
 : _pin(pin),
   _filteredVal(0),
   _rawVal(0) {
-
 }
 
 void FSRReader::begin() {

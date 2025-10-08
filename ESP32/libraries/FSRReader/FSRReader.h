@@ -8,7 +8,7 @@
 /**
  *  Clase para leer sensores de tipo FSR.
  */
-class FSRReader : public ISensor {  // <--- Aquí está la corrección importante
+class FSRReader : public ISensor {  
 public:
     FSRReader(uint8_t pin);
 

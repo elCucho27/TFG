@@ -72,8 +72,7 @@ void StringHandler::processSoftPot(uint16_t value) {
 
 void StringHandler::processFSR(uint16_t value) {
     uint8_t modVal = map(value, 0, 4095, 0, 127);
-
-    const uint8_t MODULATION_THRESHOLD = 1300;  // umbral ajustable
+    const uint8_t MODULATION_THRESHOLD = 5;  
 
     if (abs(modVal - _lastModValue) >= MODULATION_THRESHOLD) {
         _modulationTriggered = true;
@@ -82,6 +81,7 @@ void StringHandler::processFSR(uint16_t value) {
         _modulationTriggered = false;
     }
 }
+
 
 void StringHandler::processDotFSR(uint16_t value, uint32_t timestamp) {
     const uint16_t thresholdOn = 100;
@@ -121,8 +121,8 @@ int16_t StringHandler::computePitchBend(uint16_t value) const {
 
 
 uint8_t StringHandler::computeVelocity(uint16_t value, uint32_t timestamp) const {
-    uint32_t deltaT = max(timestamp - _lastDotfsrTriggerTime, (uint32_t)1);
-    float rate = (float)value / (float)deltaT;
+    uint32_t deltaT = std::max<uint32_t>(timestamp - _lastDotfsrTriggerTime, 1u);
+    float rate = static_cast<float>(_lastDotfsrVal) / deltaT;
     return constrain(rate * 800.0f, 20, 127);
 }
 

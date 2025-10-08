@@ -1,56 +1,31 @@
 #include <Wire.h>
+#include "Apollo3I2CData.h"
 
-#define SLAVE_ADDRESS 0x08
-#define SDA_PIN 21
-#define SCL_PIN 22
-#define IDENTIFY_COMMAND 0x01
-#define PACKET_TYPE_IDENTIFY 0x01
-#define PACKET_TYPE_SENSOR   0x02
+// Dirección fija del esclavo
+#define I2C_ADDRESS 0x0D
 
-const char IDENTIFIER[7] = "SENS_X"; // Máx. 6 caracteres + cabecera + sin '\0'
-
-volatile uint8_t lastCommand = 0;
-volatile bool identifyRequested = false;
+Apollo3I2CData sensorData;
 
 void setup() {
+  Wire.begin(I2C_ADDRESS);
+  Wire.onRequest(onRequestHandler);
+
+  #ifdef DEBUG
   Serial.begin(115200);
-  delay(500); // Espera para monitor
-
-  Wire.begin(SLAVE_ADDRESS);
-  Wire.onReceive(receiveEvent);
-  Wire.onRequest(requestEvent);
-
-  Serial.println("[SLAVE] I2C esclavo iniciado.");
+  Serial.println("Apollo3 I2C esclavo iniciado en dirección 0x0D");
+  #endif
 }
 
 void loop() {
+  for (int i = 0; i < 3; i++) {
+    sensorData.softpots[i] = random(0, 4095);
+    sensorData.fsrs[i]     = random(0, 4095);
+    sensorData.dotfsrs[i]  = random(0, 4095);
+  }
+
   delay(10);
 }
 
-void receiveEvent(int howMany) {
-  if (howMany > 0) {
-    lastCommand = Wire.read();
-    if (lastCommand == IDENTIFY_COMMAND) {
-      identifyRequested = true;
-    }
-    while (Wire.available()) Wire.read(); // Limpia buffer
-  }
+void onRequestHandler() {
+  Wire.write((uint8_t*)&sensorData, sizeof(Apollo3I2CData));
 }
-
-void requestEvent() {
-  if (identifyRequested) {
-    identifyRequested = false; // ✅ Limpia el flag ANTES de responder
-    Wire.write(PACKET_TYPE_IDENTIFY);
-    Wire.write((const uint8_t*)IDENTIFIER, sizeof(IDENTIFIER));
-    Serial.println("[SLAVE] IDENTIFIER enviado.");
-  } else {
-    Wire.write(PACKET_TYPE_SENSOR);
-    for (int i = 0; i < 3; i++) {
-      uint16_t val = random(0, 4096);
-      Wire.write(lowByte(val));
-      Wire.write(highByte(val));
-    }
-    Serial.println("[SLAVE] Datos aleatorios enviados.");
-  }
-}
-
