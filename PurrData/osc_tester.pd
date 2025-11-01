@@ -1,0 +1,94 @@
+#N canvas 158 31 1201 701 10;
+#X obj 20 20 netreceive -u -b 8000;
+#X obj 20 50 oscparse;
+#X obj 20 80 route list;
+#X obj 20 110 list split 1;
+#X obj 200 110 symbol;
+#X obj 20 140 route /3stringController/String1 /3stringController/String2
+/3stringController/String3, f 95;
+#X obj 20 180 unpack f f f f;
+#X obj 20 210 vsl 15 128 0 127 0 0 note1 - - 0 -9 0 10 #fcfcfc #000000
+#000000 0 1;
+#X obj 60 210 vsl 15 128 0 127 0 0 velocity1 - - 0 -9 0 10 #fcfcfc
+#000000 #000000 0 1;
+#X obj 100 210 vsl 15 128 0 127 0 0 modulation1 - - 0 -9 0 10 #fcfcfc
+#000000 #000000 0 1;
+#X obj 140 210 vsl 15 128 0 127 0 0 pitch1 - - 0 -9 0 10 #fcfcfc #000000
+#000000 0 1;
+#X obj 140 240 t f b;
+#X obj 180 270 f;
+#X obj 180 300 + 1;
+#X obj 180 330 % 300;
+#X obj 180 360 t f f;
+#X obj 180 390 tabwrite pitchbend_array1;
+#X obj 180 420 s tick1;
+#X obj 300 180 unpack f f f f;
+#X obj 300 210 vsl 15 128 0 127 0 0 note2 - - 0 -9 0 10 #fcfcfc #000000
+#000000 0 1;
+#X obj 340 210 vsl 15 128 0 127 0 0 velocity2 - - 0 -9 0 10 #fcfcfc
+#000000 #000000 0 1;
+#X obj 380 210 vsl 15 128 0 127 0 0 modulation2 - - 0 -9 0 10 #fcfcfc
+#000000 #000000 0 1;
+#X obj 420 210 vsl 15 128 0 127 0 0 pitch2 - - 0 -9 0 10 #fcfcfc #000000
+#000000 0 1;
+#X obj 420 240 t f b;
+#X obj 460 270 f;
+#X obj 460 300 + 1;
+#X obj 460 330 % 300;
+#X obj 460 360 t f f;
+#X obj 460 390 tabwrite pitchbend_array2;
+#X obj 460 420 s tick2;
+#X obj 580 180 unpack f f f f;
+#X obj 580 210 vsl 15 128 0 127 0 0 note3 - - 0 -9 0 10 #fcfcfc #000000
+#000000 0 1;
+#X obj 620 210 vsl 15 128 0 127 0 0 velocity3 - - 0 -9 0 10 #fcfcfc
+#000000 #000000 0 1;
+#X obj 660 210 vsl 15 128 0 127 0 0 modulation3 - - 0 -9 0 10 #fcfcfc
+#000000 #000000 0 1;
+#X obj 700 210 vsl 15 128 0 127 0 0 pitch3 - - 0 -9 0 10 #fcfcfc #000000
+#000000 0 1;
+#X obj 700 240 t f b;
+#X obj 740 270 f;
+#X obj 740 300 + 1;
+#X obj 740 330 % 300;
+#X obj 740 360 t f f;
+#X obj 740 390 tabwrite pitchbend_array3;
+#X obj 740 420 s tick3;
+#X obj 180 460 array pitchbend_array1 300 float 0;
+#X obj 460 460 array pitchbend_array2 300 float 0;
+#X obj 740 460 array pitchbend_array3 300 float 0;
+#X connect 0 0 1 0;
+#X connect 1 0 2 0;
+#X connect 2 0 3 0;
+#X connect 3 1 4 0;
+#X connect 4 0 5 0;
+#X connect 5 0 6 0;
+#X connect 5 1 18 0;
+#X connect 5 2 30 0;
+#X connect 6 0 7 0;
+#X connect 6 1 8 0;
+#X connect 6 2 9 0;
+#X connect 6 3 11 0;
+#X connect 11 0 12 0;
+#X connect 11 1 13 0;
+#X connect 13 0 14 0;
+#X connect 14 0 15 0;
+#X connect 15 0 16 0;
+#X connect 18 0 19 0;
+#X connect 18 1 20 0;
+#X connect 18 2 21 0;
+#X connect 18 3 23 0;
+#X connect 23 0 24 0;
+#X connect 23 1 25 0;
+#X connect 25 0 26 0;
+#X connect 26 0 27 0;
+#X connect 27 0 28 0;
+#X connect 30 0 31 0;
+#X connect 30 1 32 0;
+#X connect 30 2 33 0;
+#X connect 30 3 35 0;
+#X connect 35 0 36 0;
+#X connect 35 1 37 0;
+#X connect 37 0 38 0;
+#X connect 38 0 39 0;
+#X connect 39 0 40 0;
