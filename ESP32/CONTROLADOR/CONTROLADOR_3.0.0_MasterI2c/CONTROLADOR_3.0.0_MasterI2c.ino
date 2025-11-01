@@ -33,7 +33,7 @@ SensorCommState lastState    = SensorCommState::Waiting;
 // ======================= CONFIGURACIÓN I2C =====================
 #define SDA_PIN 8
 #define SCL_PIN 9
-#define I2C_ADDRESS_SENSOR 0x08
+#define I2C_ADDRESS_SENSOR 0x0D
 #define I2C_INTERVAL_MS 10
 
 // ===================== CONFIGURACIÓN GENERAL ===================

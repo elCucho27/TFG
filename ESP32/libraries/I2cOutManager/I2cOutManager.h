@@ -1,46 +1,43 @@
-/************************************************************
- * I2cOutManager.h
- * Router/fan-out para el BUS DE SALIDAS.
- * Mantiene una lista de “sinks” (implementaciones de OutSink)
- * y expone helpers para emitir eventos a TODOS los sinks activos.
- *
- * NOTA: aunque se llame I2cOutManager, no depende de Wire/Wire1.
- * El nombre hace referencia a que forma parte del “lado OUT”.
- * Cada sink decide cómo transporta (I2C, USB, UDP, GPIO...).
- ************************************************************/
 #pragma once
 #include <Arduino.h>
+#include <Wire.h>
 #include <vector>
 #include "OutSink.h"
 
+// Si tu OutSink/OutEvent están en otro header, ajusta el include anterior.
+// Interfaz mínima esperada:
+//   struct OutEvent { ... };
+//   struct OutSink { virtual void handle(const OutEvent& e) = 0; };
+
 class I2cOutManager {
 public:
-  I2cOutManager() = default;
+ 
+  explicit I2cOutManager(TwoWire& busRef) : bus(busRef) {}
 
-  // Registrar/retirar salidas
+  I2cOutManager() : bus(Wire) {}
+
   void addSink(OutSink* s) {
     if (!s) return;
     sinks.push_back(s);
   }
 
-  void clearSinks() {
-    sinks.clear();
+  // Encaminador genérico de eventos de salida
+  void handle(const OutEvent& e) {
+    for (auto* s : sinks) {
+      if (s) s->handle(e);
+    }
   }
 
-  // --------- API de alto nivel (fan-out) ----------
-  inline void noteOn (uint8_t ch, uint8_t note, uint8_t vel) {
-    for (auto* s : sinks) s->noteOn(ch, note, vel);
+  // Si en tu proyecto inicializas el bus aquí, puedes exponer un begin opcional:
+  void begin(uint32_t freq = 400000) {
+    // Ojo: si usas un TwoWire distinto de 'Wire', asegúrate de haber llamado a .begin() antes desde fuera
+    // Aquí NO llamamos a bus.begin(SDA, SCL) porque tus pines pueden variar por placa
+    bus.setClock(freq);
   }
-  inline void noteOff(uint8_t ch, uint8_t note, uint8_t vel) {
-    for (auto* s : sinks) s->noteOff(ch, note, vel);
-  }
-  inline void cc     (uint8_t ch, uint8_t num,  uint8_t val) {
-    for (auto* s : sinks) s->cc(ch, num, val);
-  }
-  inline void pb     (uint8_t ch, uint16_t bend14) {
-    for (auto* s : sinks) s->pb(ch, bend14);
-  }
+
+  TwoWire& getWire() { return bus; }
 
 private:
+  TwoWire& bus;
   std::vector<OutSink*> sinks;
 };
